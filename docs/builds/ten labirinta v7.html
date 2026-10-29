@@ -1,0 +1,2130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>ТЕНЬ ЛАБИРИНТА · v7</title>
+<style>
+  html,body{margin:0;height:100%;background:#08090d;color:#dbe2ee;
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;overflow:hidden}
+  #wrap{position:relative;height:100%;display:flex;align-items:center;justify-content:center}
+  canvas#view{image-rendering:pixelated;border-radius:10px;width:min(92vw,900px);height:auto;
+    box-shadow:0 0 0 1px #232b3a,0 18px 60px rgba(0,0,0,.65)}
+  #hud{position:absolute;top:14px;left:16px;font-size:13px;line-height:1.55;
+    background:rgba(8,10,15,.74);border:1px solid #232b3a;border-radius:10px;padding:10px 14px;pointer-events:none}
+  #hud b{color:#fff}
+  #keyState{color:#8b95a8} #keyState.has{color:#ffd43b}
+  #monState{color:#8b95a8} #monState.hunt{color:#ff6b6b;font-weight:700} #monState.seek{color:#ffa94d}
+  #msg{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);
+    font-size:17px;font-weight:700;color:#ffd43b;text-shadow:0 2px 10px #000;
+    background:rgba(8,10,15,.68);padding:8px 18px;border-radius:10px;border:1px solid #232b3a;
+    opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+  #minimap{position:absolute;top:14px;right:16px;border-radius:10px;box-shadow:0 0 0 1px #232b3a;background:#0d1017}
+  #help{position:absolute;bottom:14px;left:16px;font-size:12px;color:#7d8798;
+    background:rgba(8,10,15,.74);border:1px solid #232b3a;border-radius:10px;padding:8px 12px;pointer-events:none}
+  #btns{position:absolute;bottom:14px;right:16px;display:flex;gap:8px}
+  button{background:#1a2130;color:#dbe2ee;border:1px solid #2c3547;border-radius:9px;
+    padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
+  button:hover{background:#232b3a}
+  button.primary{background:#2b4a3f;border-color:#3f6f5c;color:#c9f5e2}
+  button.primary:hover{background:#35604f}
+  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,6,10,.82);backdrop-filter:blur(3px)}
+  .box{background:#12161f;border:1px solid #2c3547;border-radius:16px;padding:26px 38px;text-align:center;max-width:620px}
+  .box h1{margin:0 0 6px;font-size:30px;letter-spacing:2px}
+  .box h1.t{color:#63e6be} .box h1.w{color:#ff6b6b}
+  .box p{margin:4px 0;color:#a9b4c7;font-size:14px}
+  .row{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  table.cfg{margin:12px auto 0;border-collapse:collapse;font-size:13.5px}
+  table.cfg td{padding:4px 9px;text-align:left;color:#a9b4c7}
+  table.cfg td:first-child{text-align:right;color:#7d8798}
+  input[type=number],select{background:#0d1017;color:#dbe2ee;border:1px solid #2c3547;border-radius:7px;
+    padding:5px 8px;font-size:13px;font-family:inherit;width:130px}
+  input[type=range]{vertical-align:middle;width:120px}
+  input[type=checkbox]{width:16px;height:16px;vertical-align:middle}
+  .val{color:#63e6be;font-size:12px;min-width:34px;display:inline-block}
+  .keys{font-size:12.5px;color:#7d8798;margin-top:10px;line-height:1.65}
+  .keys b{color:#a9b4c7}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="fx" style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50"></canvas>
+<div id="wrap">
+  <canvas id="view" width="416" height="260"></canvas>
+  <canvas id="glv" style="display:none;image-rendering:auto;border-radius:10px;width:min(92vw,900px);height:auto;box-shadow:0 0 0 1px #232b3a,0 18px 60px rgba(0,0,0,.65)"></canvas>
+  <div id="hud" class="hidden">
+    <div>Сид: <b id="seedLbl">—</b> · Карта: <b id="sizeLbl">—</b> · Пресет: <b id="preLbl">—</b> · Рендер: <b id="renLbl">—</b></div>
+    <div>Время: <b id="timeLbl">0.0</b> с · Шаги: <b id="stepLbl">0</b></div>
+    <div id="keyState">Ключ: не найден</div>
+    <div id="monState">Тень: —</div>
+    <div style="margin-top:5px;width:150px;height:7px;background:#232b3a;border-radius:4px;overflow:hidden">
+      <div id="stamBar" style="height:100%;width:100%;background:#63e6be"></div>
+    </div>
+  </div>
+  <div id="devPanel" class="hidden" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);
+    background:rgba(22,12,34,.88);border:1px solid #7048e8;border-radius:10px;padding:8px 12px;font-size:12px;color:#d0bfff;max-width:560px">
+    <b>DEV-РЕЖИМ · F3 — выйти</b>
+    <div class="row" style="margin-top:6px">
+      <button id="dvNoclip">noclip</button><button id="dvGhost">ghost</button>
+      <button id="dvStam">∞ стамина</button><button id="dvSlow">slow-mo</button>
+      <button id="dvDbg">инфо</button><button id="dvKey">→ ключ</button>
+      <button id="dvDoor">→ дверь</button><button id="dvSummon">призвать Тень</button>
+      <button id="dvScream">скример</button>
+    </div>
+    <div id="dbg" style="margin-top:6px;font-family:ui-monospace,monospace;color:#9aa5b8;font-size:11px"></div>
+  </div>
+  <canvas id="minimap" width="150" height="150" class="hidden"></canvas>
+  <div id="msg"></div>
+  <div id="help" class="hidden">Мышь — обзор · W/A/S/D — движение · Shift — бег (стамина!) · E/пробел — взаимодействие · M — миникарта · Esc — пауза · F3 — dev-режим</div>
+  <div id="btns" class="hidden">
+    <button id="botBtn">Автопилот</button>
+    <button id="menuBtn">В меню</button>
+  </div>
+
+  <div id="menu" class="overlay"><div class="box">
+    <h1 class="t">ТЕНЬ ЛАБИРИНТА</h1>
+    <p>Ключ → дальняя дверь. Лампы горят, где повезло. Свет моргает рядом с Тенью.<br>
+       Тень видит вас через любой коридор и срезает путь через темноту. Слушайте гул.</p>
+    <table class="cfg">
+      <tr><td>Пресет сложности</td><td><select id="cfgPreset">
+        <option value="custom">свой</option>
+        <option value="practice">практика (без тени)</option>
+        <option value="easy">лёгкий</option>
+        <option value="medium" selected>средний</option>
+        <option value="hard">сложный</option>
+        <option value="extreme">экстрим</option></select></td>
+        <td>меняет всё ниже</td></tr>
+      <tr><td>Сид</td><td><input type="number" id="cfgSeed" placeholder="случайный"></td><td>пусто = случайный</td></tr>
+      <tr><td>Размер карты</td><td><select id="cfgSize">
+          <option value="15">15×15</option><option value="21" selected>21×21</option>
+          <option value="27">27×27</option><option value="33">33×33</option></select></td><td></td></tr>
+      <tr><td>Тень</td><td><input type="checkbox" id="cfgMon" checked></td><td>на практике выкл</td></tr>
+      <tr><td>Скорость тени</td><td><input type="range" id="cfgMonSp" min="1.0" max="4.0" step="0.1" value="1.9">
+          <span class="val" id="cfgMonSpV">1.9</span></td><td>кл/с (игрок 2.3 / бег 3.6)</td></tr>
+      <tr><td>Плотность ламп</td><td><input type="range" id="cfgDens" min="0.4" max="2.0" step="0.05" value="1.0">
+          <span class="val" id="cfgDensV">1</span></td><td>меньше = больше тёмных зон</td></tr>
+      <tr><td>Тень всегда на карте</td><td><input type="checkbox" id="cfgRadar"></td><td>радар без условий</td></tr>
+      <tr><td>Умный телепорт тени</td><td><input type="checkbox" id="cfgTp"></td><td>срезает путь через темноту</td></tr>
+      <tr><td>Рендерер</td><td><select id="cfgRender">
+          <option value="auto" selected>авто (GPU если есть)</option>
+          <option value="gpu">GPU (WebGL2)</option>
+          <option value="cpu">CPU (классика)</option></select></td><td>GPU: 3D, свет, bloom, частицы</td></tr>
+      <tr><td>Чувствительность мыши</td><td><input type="range" id="cfgSens" min="0.5" max="3" step="0.1" value="1.4">
+          <span class="val" id="cfgSensV">1.4</span></td><td></td></tr>
+    </table>
+    <div class="row"><button class="primary" id="startBtn">Начать игру</button>
+      <button id="sndBtn">Лаборатория звука</button></div>
+    <div class="keys">
+      <b>Мышь</b> обзор (клик — захват курсора) · <b>W/S</b> вперёд/назад · <b>A/D</b> стрейф · <b>Shift</b> бег ·
+      <b>E/пробел</b> ключ/дверь · <b>M</b> карта · <b>Esc</b> пауза (игра и звук замирают)<br>
+      Зрение тени не ограничено: прямой коридор = она вас видит, как вы её. Телепорт — только в темноту,
+      только когда это короткий путь, и никогда у вас на глазах. Лампы стробят рядом с ней — и трещат, если вы близко.
+    </div>
+  </div></div>
+
+  <div id="pause" class="overlay hidden"><div class="box">
+    <h1 class="t">ПАУЗА</h1><p>Игра и звук полностью остановлены.</p>
+    <div class="row"><button class="primary" id="resumeBtn">Продолжить</button>
+      <button id="pauseMenuBtn">В меню</button></div>
+  </div></div>
+
+  <div id="sndlab" class="overlay hidden"><div class="box" style="max-width:720px">
+    <h1 class="t">ЛАБОРАТОРИЯ ЗВУКА</h1>
+    <p>Каждая звуковая процедура игры по отдельности, с боевой громкостью.<br>
+       Гул играет 2.5 с сэмплом, скример — полный боевой вопль.</p>
+    <div class="row" id="sndBtns" style="max-width:660px"></div>
+    <div class="row"><button id="sndClose">Закрыть</button></div>
+  </div></div>
+
+  <div id="end" class="overlay hidden"><div class="box">
+    <h1 id="endTitle" class="t">—</h1>
+    <p id="endStats"></p>
+    <div class="row">
+      <button class="primary" id="againBtn">Тот же лабиринт</button>
+      <button id="nextBtn">Новый лабиринт</button>
+      <button id="endMenuBtn">В меню</button>
+    </div>
+  </div></div>
+</div>
+
+<script id="core">
+/* ==================== CORE v4 ==================== */
+function mulberry32(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+var PRESETS={
+  practice:{W:15,monster:false,monsterSpeed:1.2,density:1.8,radar:true, teleport:false},
+  easy:    {W:21,monster:true, monsterSpeed:1.6,density:1.3,radar:true, teleport:false},
+  medium:  {W:21,monster:true, monsterSpeed:1.9,density:1.0,radar:false,teleport:false},
+  hard:    {W:27,monster:true, monsterSpeed:2.4,density:0.75,radar:false,teleport:true},
+  extreme: {W:33,monster:true, monsterSpeed:3.9,density:0.55,radar:false,teleport:true}};
+const AMBIENT=0.16, LAMP_R=3.2, DARK_T=0.22;
+
+function genMaze(seed,W,H){
+  const rnd=mulberry32(seed);
+  const g=new Uint8Array(W*H).fill(1);
+  const ix=(x,y)=>y*W+x;
+  const stack=[[1,1]];g[ix(1,1)]=0;
+  while(stack.length){
+    const [cx,cy]=stack[stack.length-1];
+    const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
+    for(let i=dirs.length-1;i>0;i--){const j=(rnd()*(i+1))|0;const t=dirs[i];dirs[i]=dirs[j];dirs[j]=t}
+    let moved=false;
+    for(const [dx,dy] of dirs){
+      const nx=cx+dx,ny=cy+dy;
+      if(nx>0&&ny>0&&nx<W-1&&ny<H-1&&g[ix(nx,ny)]===1){
+        g[ix(cx+dx/2,cy+dy/2)]=0;g[ix(nx,ny)]=0;stack.push([nx,ny]);moved=true;break;
+      }
+    }
+    if(!moved)stack.pop();
+  }
+  const start={x:1,y:1};
+  const dist=new Int32Array(W*H).fill(-1),par=new Int32Array(W*H).fill(-1);
+  const q=[ix(1,1)];dist[q[0]]=0;
+  for(let qi=0;qi<q.length;qi++){
+    const c=q[qi],cx=c%W,cy=(c/W)|0;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cx+dx,ny=cy+dy;
+      if(nx<0||ny<0||nx>=W||ny>=H)continue;
+      const n=ix(nx,ny);
+      if(g[n]===0&&dist[n]===-1){dist[n]=dist[c]+1;par[n]=c;q.push(n)}
+    }
+  }
+  let doorIdx=-1,maxD=0;
+  for(let i=0;i<W*H;i++)if(g[i]===0&&dist[i]>maxD){maxD=dist[i];doorIdx=i}
+  const door={x:doorIdx%W,y:(doorIdx/W)|0};
+  const pathSet=new Set();let c=doorIdx;
+  while(c!==-1){pathSet.add(c);c=par[c]}
+  let cands=[];
+  for(let i=0;i<W*H;i++)if(g[i]===0&&dist[i]>=Math.ceil(maxD*0.55)&&i!==doorIdx&&i!==ix(1,1)&&!pathSet.has(i))cands.push(i);
+  if(!cands.length)for(let i=0;i<W*H;i++)if(g[i]===0&&dist[i]>=Math.ceil(maxD*0.55)&&i!==doorIdx&&i!==ix(1,1))cands.push(i);
+  if(!cands.length)for(let i=0;i<W*H;i++)if(g[i]===0&&dist[i]>2&&i!==doorIdx)cands.push(i);
+  cands.sort((a,b)=>dist[b]-dist[a]);
+  const pick=cands[(rnd()*Math.max(1,Math.min(cands.length,6)))|0];
+  const key={x:pick%W,y:(pick/W)|0};
+  g[doorIdx]=2;
+  const floors=[];for(let i=0;i<W*H;i++)if(g[i]===0)floors.push(i);
+  return {grid:g,W,H,start,door,key,maxDist:maxD,keyDist:dist[pick],dist,floors};
+}
+
+function genLamps(s,density,rnd){
+  const want=Math.max(2,Math.round(s.floors.length*0.04*density));
+  const lamps=[];
+  let guard=0;
+  while(lamps.length<want&&guard++<want*40){
+    const f=s.floors[(rnd()*s.floors.length)|0];
+    const x=f%s.W,y=(f/s.W)|0;
+    let ok=true;
+    for(const L of lamps)if(Math.hypot(L.x-x,L.y-y)<3){ok=false;break}
+    if(ok)lamps.push({x,y,gt:10+rnd()*40,gOff:0,fl:0,on2:true,I:1});
+  }
+  let nearStart=false;
+  for(const L of lamps)if(Math.hypot(L.x-s.start.x,L.y-s.start.y)<3)nearStart=true;
+  if(!nearStart){
+    let best=s.floors[0],bd=1e9;
+    for(const f of s.floors){
+      const d=Math.hypot(f%s.W-s.start.x,((f/s.W)|0)-s.start.y);
+      if(d<bd){bd=d;best=f}
+    }
+    lamps.push({x:best%s.W,y:(best/s.W)|0,gt:10+rnd()*40,gOff:0,fl:0,on2:true,I:1});
+  }
+  return lamps;
+}
+function buildLampCells(s,lp){
+  /* статичный кэш: для каждой клетки в радиусе — фаллофф и видимость от плафона.
+     Геометрия не меняется, поэтому los() считаем один раз за жизнь лампы */
+  const R=LAMP_R,cells=[];
+  const lx=lp.x+0.5,ly=lp.y+0.5;
+  const y0=Math.max(0,Math.floor(ly-R)),y1=Math.min(s.H-1,Math.ceil(ly+R));
+  const x0=Math.max(0,Math.floor(lx-R)),x1=Math.min(s.W-1,Math.ceil(lx+R));
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const d=Math.hypot(x+0.5-lx,y+0.5-ly);
+    if(d>R)continue;
+    const fall=1-d/R;
+    const vis=los(s,lx,ly,x+0.5,y+0.5);      // стены режут свет: за стеной — темнота
+    cells.push(y*s.W+x, fall, vis?1:0.15, vis?Math.min(1,0.25+fall*1.6):0);
+  }
+  lp.cells=new Float32Array(cells);
+}
+function applyLamp(s,L,G,lp){
+  if(!lp.cells)buildLampCells(s,lp);
+  const c=lp.cells,I=lp.I;
+  for(let k=0;k<c.length;k+=4){
+    const i=c[k];
+    L[i]=Math.min(1,L[i]+I*c[k+1]*0.95*c[k+2]);
+    if(G){const gv=c[k+3];if(gv>G[i])G[i]=gv}
+  }
+}
+function baseLight(s){
+  const L=new Float32Array(s.W*s.H).fill(AMBIENT);
+  for(const lp of s.lamps)applyLamp(s,L,null,lp);
+  return L;
+}
+function sampleLight(s,x,y){
+  const W=s.W,H=s.H,L=s.light;
+  let x0=Math.floor(x),y0=Math.floor(y);
+  if(x0<0)x0=0;if(y0<0)y0=0;if(x0>W-1)x0=W-1;if(y0>H-1)y0=H-1;
+  const x1=Math.min(W-1,x0+1),y1=Math.min(H-1,y0+1);
+  const fx=x-x0<0?0:x-x0>1?1:x-x0,fy=y-y0<0?0:y-y0>1?1:y-y0;
+  const a=L[y0*W+x0],b=L[y0*W+x1],c=L[y1*W+x0],d=L[y1*W+x1];
+  return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+}
+
+function newState(seed,opts){
+  opts=Object.assign({W:21,H:21,monster:true,monsterSpeed:1.9,fov:0.8,
+    density:1.0,radar:false,teleport:false},opts);
+  const m=genMaze(seed,opts.W,opts.H);
+  const s=Object.assign({},m,opts);
+  s.seed=seed;
+  s.px=m.start.x+0.5;s.py=m.start.y+0.5;
+  s.ang=Math.atan2(m.key.y+0.5-s.py,m.key.x+0.5-s.px);
+  s.hasKey=false;s.doorOpen=false;s.won=false;s.caught=false;
+  s.time=0;s.steps=0;s.bot=false;s.botPath=null;s.botStage='key';
+  s.bobT=0;s.bobA=0;
+  s.stam=1;s.exhausted=false;
+  s.dev={noclip:false,ghost:false,infStam:false,debug:false};
+  s.explored=new Uint8Array(m.W*m.H);
+  const rM=mulberry32((seed^0x9E3779B9)>>>0);s.rndM=rM;
+  const rL=mulberry32((seed^0x51ED270B)>>>0);s.rndL=rL;
+  s.lamps=genLamps(s,opts.density,rL);
+  s.light=new Float32Array(s.W*s.H).fill(AMBIENT);
+  s.gate=new Float32Array(s.W*s.H);
+  const bl=baseLight(s);
+  s.darkCells=[];
+  for(let i=0;i<s.W*s.H;i++)if(s.grid[i]===0&&bl[i]<DARK_T)s.darkCells.push(i);
+  updateLamps(s,0);
+  let mi=m.floors[(rM()*m.floors.length)|0];
+  for(const f of m.floors)if(m.dist[f]>=m.maxDist*0.5&&rM()<0.25){mi=f;break}
+  s.mx=(mi%m.W)+0.5;s.my=((mi/m.W)|0)+0.5;
+  s.mMode='wander';s.mPath=null;s.mRep=0;s.lastSeen=null;
+  s.tpCd=8+rM()*8;
+  return s;
+}
+
+function updateLamps(s,dt){
+  const L=s.light;L.fill(AMBIENT);
+  const G=s.gate||(s.gate=new Float32Array(s.W*s.H));
+  G.fill(0);
+  for(const lp of s.lamps){
+    const dSh=s.monster?Math.hypot(lp.x+0.5-s.mx,lp.y+0.5-s.my):1e9;
+    if(s.monster&&dSh<3.8){
+      lp.fl-=dt;
+      if(lp.fl<=0){lp.fl=0.03+s.rndL()*0.08;lp.on2=s.rndL()<0.55}
+      lp.I=lp.on2?0.25+0.75*s.rndL():0.04;
+    }else{
+      lp.gt-=dt;
+      if(lp.gt<=0){lp.gOff=0.10+0.06*s.rndL();lp.gt=14+s.rndL()*46}
+      if(lp.gOff>0){lp.gOff-=dt;lp.I=0.05}else lp.I=1;
+    }
+    if(lp.I>0.03)applyLamp(s,L,G,lp);
+  }
+}
+
+function cellAt(s,x,y){
+  const cx=Math.floor(x),cy=Math.floor(y);
+  if(cx<0||cy<0||cx>=s.W||cy>=s.H)return 1;
+  return s.grid[cy*s.W+cx];
+}
+function blocked(s,x,y){const v=cellAt(s,x,y);return v===1||v===2}
+function tryMove(s,dx,dy){
+  if(s.dev&&s.dev.noclip){
+    s.px=Math.min(s.W-0.05,Math.max(0.05,s.px+dx));
+    s.py=Math.min(s.H-0.05,Math.max(0.05,s.py+dy));
+    return;
+  }
+  const r=0.22;
+  const nx=s.px+dx;
+  if(!blocked(s,nx+Math.sign(dx)*r,s.py+r)&&!blocked(s,nx+Math.sign(dx)*r,s.py-r)&&!blocked(s,nx+Math.sign(dx)*r,s.py))s.px=nx;
+  const ny=s.py+dy;
+  if(!blocked(s,s.px+r,ny+Math.sign(dy)*r)&&!blocked(s,s.px-r,ny+Math.sign(dy)*r)&&!blocked(s,s.px,ny+Math.sign(dy)*r))s.py=ny;
+}
+function los(s,x0,y0,x1,y1){
+  const d=Math.hypot(x1-x0,y1-y0),n=Math.ceil(d/0.15);
+  for(let i=1;i<n;i++){const t=i/n;if(blocked(s,x0+(x1-x0)*t,y0+(y1-y0)*t))return false}
+  return true;
+}
+function bfsPath(s,from,to){
+  const W=s.W,H=s.H,ix=(x,y)=>y*W+x;
+  const prev=new Int32Array(W*H).fill(-2);
+  const q=[ix(from.x,from.y)];prev[q[0]]=-1;
+  for(let qi=0;qi<q.length;qi++){
+    const c=q[qi],cx=c%W,cy=(c/W)|0;
+    if(cx===to.x&&cy===to.y)break;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cx+dx,ny=cy+dy;
+      if(nx<0||ny<0||nx>=W||ny>=H)continue;
+      const n=ix(nx,ny),v=s.grid[n];
+      const walk=v===0||(v===2&&nx===to.x&&ny===to.y);
+      if(walk&&prev[n]===-2){prev[n]=c;q.push(n)}
+    }
+  }
+  const t=ix(to.x,to.y);
+  if(prev[t]===-2)return null;
+  const path=[];let c=t;
+  while(c!==-1){path.push({x:c%W,y:(c/W)|0});c=prev[c]}
+  return path.reverse();
+}
+/* поле расстояний ДО клетки to (для умного телепорта) */
+function bfsDist(s,to){
+  const W=s.W,H=s.H,ix=(x,y)=>y*W+x;
+  const d=new Int32Array(W*H).fill(-1);
+  const q=[ix(to.x,to.y)];d[q[0]]=0;
+  for(let qi=0;qi<q.length;qi++){
+    const c=q[qi],cx=c%W,cy=(c/W)|0;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cx+dx,ny=cy+dy;
+      if(nx<0||ny<0||nx>=W||ny>=H)continue;
+      const n=ix(nx,ny);
+      if(s.grid[n]===0&&d[n]===-1){d[n]=d[c]+1;q.push(n)}
+    }
+  }
+  return d;
+}
+function enableBot(s){s.bot=true;s.botPath=null;s.botStage=s.hasKey?'door':'key'}
+function botInput(s){
+  const inp={fwd:0,back:0,left:0,right:0,turnL:0,turnR:0,interact:0,run:1};
+  if(s.won||s.caught)return inp;
+  if(s.hasKey)s.botStage='door';
+  const target=s.botStage==='key'?s.key:s.door;
+  const cur={x:Math.floor(s.px),y:Math.floor(s.py)};
+  if(!s.botPath||s.botPath.length===0||s.botPath[0].x!==cur.x||s.botPath[0].y!==cur.y)
+    s.botPath=bfsPath(s,cur,target);
+  else if(s.botPath.length>1&&s.botPath[1].x===cur.x&&s.botPath[1].y===cur.y)
+    s.botPath=s.botPath.slice(1);
+  if(!s.botPath||!s.botPath.length)return inp;
+  const wp=s.botPath.length>1?s.botPath[1]:target;
+  const tx=wp.x+0.5,ty=wp.y+0.5;
+  const want=Math.atan2(ty-s.py,tx-s.px);
+  let d=want-s.ang;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;
+  if(d>0.10)inp.turnR=1;else if(d<-0.10)inp.turnL=1;
+  const distT=Math.hypot(tx-s.px,ty-s.py);
+  if(Math.abs(d)<0.5&&distT>0.12)inp.fwd=1;
+  const dd=Math.hypot(s.door.x+0.5-s.px,s.door.y+0.5-s.py);
+  if(s.hasKey&&!s.doorOpen&&dd<1.25)inp.interact=1;
+  if(!s.hasKey&&Math.hypot(s.key.x+0.5-s.px,s.key.y+0.5-s.py)<0.7)inp.interact=1;
+  return inp;
+}
+
+function stepMonster(s,dt,ev){
+  if(!s.monster||s.won||s.caught)return;
+  // зрение не ограничено: прямая видимость на любую дистанцию (ghost в dev-режиме отключает)
+  const seen=(s.dev&&s.dev.ghost)?false:los(s,s.mx,s.my,s.px,s.py);
+  const cur={x:Math.floor(s.mx),y:Math.floor(s.my)};
+  if(seen){
+    if(s.mMode!=='chase'){s.mMode='chase';ev.push('monster_seen')}
+    s.lastSeen={x:Math.floor(s.px),y:Math.floor(s.py)};
+    s.mRep-=dt;
+    const atEnd=!s.mPath||!s.mPath.length||
+      (s.mPath[s.mPath.length-1].x!==s.lastSeen.x||s.mPath[s.mPath.length-1].y!==s.lastSeen.y);
+    if(s.mRep<=0||atEnd){s.mPath=bfsPath(s,cur,s.lastSeen);s.mRep=0.45}
+  }else if(s.mMode==='chase'){
+    s.mMode='investigate';
+    s.mPath=s.lastSeen?bfsPath(s,cur,s.lastSeen):null;
+  }
+  if(s.mMode==='investigate'&&s.lastSeen){
+    if(!s.mPath||!s.mPath.length)s.mPath=bfsPath(s,cur,s.lastSeen);
+    if(cur.x===s.lastSeen.x&&cur.y===s.lastSeen.y){s.mMode='wander';s.mPath=null}
+  }
+  if(s.mMode==='wander'&&(!s.mPath||!s.mPath.length||
+     (s.mPath.length===1&&s.mPath[0].x===cur.x&&s.mPath[0].y===cur.y))){
+    const t=s.floors[(s.rndM()*s.floors.length)|0];
+    s.mPath=bfsPath(s,cur,{x:t%s.W,y:(t/s.W)|0});
+  }
+  if(s.mPath&&s.mPath.length){
+    if(s.mPath[0].x!==cur.x||s.mPath[0].y!==cur.y)s.mPath=bfsPath(s,cur,s.mPath[s.mPath.length-1]);
+    const wp=s.mPath.length>1?s.mPath[1]:s.mPath[0];
+    const tx=wp.x+0.5,ty=wp.y+0.5;
+    const d=Math.hypot(tx-s.mx,ty-s.my);
+    const step=Math.min(d,s.monsterSpeed*dt);
+    if(d>1e-6){s.mx+=(tx-s.mx)/d*step;s.my+=(ty-s.my)/d*step}
+    if(d<=step+1e-6&&s.mPath.length>1)s.mPath=s.mPath.slice(1);
+    else if(d<=step+1e-6)s.mPath=null;
+  }
+  // умный телепорт: не на глазах, не в охоте, только если реально срезает путь к цели
+  if(s.teleport&&!s.won&&!s.caught&&!seen){
+    s.tpCd-=dt;
+    if(s.tpCd<=0){
+      s.tpCd=9+s.rndM()*9;
+      if(s.mMode!=='chase'&&s.darkCells.length&&s.mPath&&s.mPath.length>8){
+        const dest=s.mPath[s.mPath.length-1];
+        const curLen=s.mPath.length;
+        const df=bfsDist(s,dest);
+        let best=-1,bestLen=1e9;
+        for(const dc of s.darkCells){
+          const dxp=(dc%s.W)+0.5,dyp=((dc/s.W)|0)+0.5;
+          if(Math.hypot(dxp-s.px,dyp-s.py)<4.5)continue;      // не спавниться у игрока
+          const L=df[dc];
+          if(L<0)continue;
+          if(L+1>curLen-4)continue;                            // выгода >= 4 шага
+          if(L<bestLen){bestLen=L;best=dc}
+        }
+        if(best>=0){
+          s.mx=(best%s.W)+0.5;s.my=((best/s.W)|0)+0.5;
+          s.mPath=null;ev.push('shadow_teleport');
+        }
+      }
+    }
+  }
+  if(Math.hypot(s.px-s.mx,s.py-s.my)<0.55){s.caught=true;ev.push('caught')}
+}
+
+function update(s,inp,dt){
+  const ev=[];
+  if(s.won||s.caught)return ev;
+  inp=Object.assign({fwd:0,back:0,left:0,right:0,turnL:0,turnR:0,interact:0,run:0},inp);
+  s.time+=dt;
+  updateLamps(s,dt);
+  s.ang+=(inp.turnR-inp.turnL)*2.7*dt;
+  // стамина: бег ограничен, восстановление пешком, гистерезис против дёрганья
+  const movingIn=(inp.fwd||inp.back||inp.left||inp.right)?1:0;
+  const inf=s.dev&&s.dev.infStam;
+  const wantRun=inp.run&&movingIn&&!s.exhausted&&(inf||s.stam>0);
+  if(wantRun&&!inf)s.stam=Math.max(0,s.stam-dt/3.5);
+  else s.stam=Math.min(1,s.stam+dt/7);
+  if(!inf&&s.stam<=0&&!s.exhausted){s.exhausted=true;ev.push('exhausted')}
+  if(s.exhausted&&(inf||s.stam>0.25))s.exhausted=false;
+  const sp=(wantRun?3.6:2.3)*dt;
+  const f=(inp.fwd?1:0)-(inp.back?1:0),st=(inp.right?1:0)-(inp.left?1:0);
+  const dx=(Math.cos(s.ang)*f+Math.cos(s.ang+Math.PI/2)*st)*sp;
+  const dy=(Math.sin(s.ang)*f+Math.sin(s.ang+Math.PI/2)*st)*sp;
+  const ox=s.px,oy=s.py;
+  tryMove(s,dx,0);tryMove(s,0,dy);
+  const moved=Math.hypot(s.px-ox,s.py-oy);
+  s.steps+=moved;
+  s.bobT+=moved;
+  s.bobA+=((moved>1e-4?1:0)-s.bobA)*Math.min(1,dt*7);
+  const cx=Math.floor(s.px),cy=Math.floor(s.py);
+  for(let y=cy-2;y<=cy+2;y++)for(let x=cx-2;x<=cx+2;x++)
+    if(x>=0&&y>=0&&x<s.W&&y<s.H)s.explored[y*s.W+x]=1;
+  if(inp.interact){
+    if(!s.hasKey&&Math.hypot(s.key.x+0.5-s.px,s.key.y+0.5-s.py)<0.8){s.hasKey=true;ev.push('pickup_key')}
+    const fx=Math.floor(s.px+Math.cos(s.ang)*0.8),fy=Math.floor(s.py+Math.sin(s.ang)*0.8);
+    if(cellAt(s,fx,fy)===2){
+      if(s.hasKey){s.doorOpen=true;s.grid[fy*s.W+fx]=0;ev.push('door_open')}
+      else ev.push('door_locked');
+    }
+  }
+  stepMonster(s,dt,ev);
+  if(s.doorOpen&&cx===s.door.x&&cy===s.door.y){s.won=true;ev.push('win')}
+  return ev;
+}
+
+/* ---------- рендер v4: bob- горизонта, виньетка, дизер, грейдинг, блики ---------- */
+var VIG=null,VIGW=0,VIGH=0;
+function vignette(W,H){
+  if(VIG&&VIGW===W&&VIGH===H)return VIG;
+  VIG=new Float32Array(W*H);VIGW=W;VIGH=H;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const u=(x/W-0.5)*2,v=(y/H-0.5)*2;
+    const d=Math.hypot(u,v*0.85);
+    let t=(d-0.55)/0.75;if(t<0)t=0;if(t>1)t=1;
+    VIG[y*W+x]=1-0.42*t*t;
+  }
+  return VIG;
+}
+const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+function render(s,W,H){
+  const buf=new Uint8ClampedArray(W*H*4);
+  const dirX=Math.cos(s.ang),dirY=Math.sin(s.ang);
+  const plX=-dirY*s.fov,plY=dirX*s.fov;
+  const zbuf=new Float32Array(W);
+  const half=H/2+Math.round(Math.sin(s.bobT*8)*2.2*s.bobA);
+  const rxs=new Float32Array(W),rys=new Float32Array(W);
+  for(let x=0;x<W;x++){const c=2*x/W-1;rxs[x]=dirX+plX*c;rys[x]=dirY+plY*c}
+  for(let y=0;y<H;y++){
+    const dyR=Math.abs(y-half);
+    if(dyR<1){for(let x=0;x<W;x++){const o=(y*W+x)*4;buf[o]=6;buf[o+1]=7;buf[o+2]=10;buf[o+3]=255}continue}
+    const isFloor=y>half;
+    const rowDist=H/(2*dyR);
+    const fog=Math.min(1,1.45/(1+0.10*rowDist*rowDist));
+    for(let x=0;x<W;x++){
+      const fx=s.px+rxs[x]*rowDist,fy=s.py+rys[x]*rowDist;
+      let lix=fx|0,liy=fy|0;
+      if(lix<0)lix=0;else if(lix>s.W-2)lix=s.W-2;
+      if(liy<0)liy=0;else if(liy>s.H-2)liy=s.H-2;
+      const i00=liy*s.W+lix,fx0=fx-lix,fy0=fy-liy;
+      const la=s.light[i00],lb=s.light[i00+1],lc=s.light[i00+s.W],ld=s.light[i00+s.W+1];
+      const li=la+(lb-la)*fx0+(lc-la)*fy0+(la-lb-lc+ld)*fx0*fy0;
+      let r,g,b;
+      if(isFloor){
+        const seam=(fx%1<0.06||fy%1<0.06)?0.7:1;
+        r=40*seam;g=37*seam;b=33*seam;
+      }else{
+        const seam=(fx%1<0.05||fy%1<0.05)?0.75:1;
+        r=30*seam;g=32*seam;b=42*seam;
+      }
+      const k=fog*li,o=(y*W+x)*4;
+      let R_=r*k*(0.88+0.30*li),G_=g*k,B_=b*k*(1.18-0.30*li);
+      // спаун-пад: светящийся теле-круг на клетке старта
+      const dxc=fx-(s.start.x+0.5),dyc=fy-(s.start.y+0.5);
+      if(isFloor&&dxc>-0.48&&dxc<0.48&&dyc>-0.48&&dyc<0.48){
+      const dc=Math.sqrt(dxc*dxc+dyc*dyc);
+      if(dc<0.48){
+        const pad=1-dc/0.48;
+        const ring=(dc>0.30&&dc<0.38)?1:0;
+        const e=(ring?0.95:0.45)*Math.min(1,pad*2.5);
+        const pulse=0.85+0.15*Math.sin(s.time*2.2);
+        R_+=26*e*pulse;G_+=205*e*pulse;B_+=165*e*pulse;
+      }}
+      buf[o]=R_;buf[o+1]=G_;buf[o+2]=B_;buf[o+3]=255;
+    }
+  }
+  for(let x=0;x<W;x++){
+    const camX=2*x/W-1;
+    const rdx=rxs[x],rdy=rys[x];
+    let mx=Math.floor(s.px),my=Math.floor(s.py);
+    const ddx=Math.abs(1/(rdx||1e-9)),ddy=Math.abs(1/(rdy||1e-9));
+    let stx,sty,sdx,sdy,side=0;
+    if(rdx<0){stx=-1;sdx=(s.px-mx)*ddx}else{stx=1;sdx=(mx+1-s.px)*ddx}
+    if(rdy<0){sty=-1;sdy=(s.py-my)*ddy}else{sty=1;sdy=(my+1-s.py)*ddy}
+    let type=1,guard=0;
+    while(guard++<512){
+      if(sdx<sdy){sdx+=ddx;mx+=stx;side=0}else{sdy+=ddy;my+=sty;side=1}
+      if(mx<0||my<0||mx>=s.W||my>=s.H){type=1;break}
+      const v=s.grid[my*s.W+mx];
+      if(v===1||v===2){type=v;break}
+    }
+    const dist=side===0?sdx-ddx:sdy-ddy;
+    zbuf[x]=dist;
+    const hx=s.px+rdx*dist,hy=s.py+rdy*dist;
+    const li=sampleLight(s,hx,hy);
+    const lh=Math.floor(H/Math.max(dist,1e-4));
+    const y0=Math.max(0,Math.floor(half-lh/2)),y1=Math.min(H-1,Math.floor(half+lh/2));
+    let wallX=side===0?hy:hx;wallX-=Math.floor(wallX);
+    const fog=Math.min(1,1.45/(1+0.10*dist*dist));
+    const sf=side===1?0.72:1;
+    const wr=0.88+0.30*li,wb=1.18-0.30*li;
+    for(let y=y0;y<=y1;y++){
+      const texY=(y-(half-lh/2))/lh;
+      let r,g,b;
+      if(type===2){
+        r=150;g=96;b=44;
+        if(wallX<0.06||wallX>0.94){r*=0.6;g*=0.6;b*=0.6}
+        if(texY>0.46&&texY<0.54){r=210;g=170;b=70}
+        const hu=wallX-0.5,hv=texY-0.50;
+        if(hu*hu/0.006+(hv>0?hv*hv/0.010:hv*hv/0.004)<1){r=24;g=20;b=16}
+        const hu2=wallX-0.80,hv2=texY-0.52;
+        if(hu2*hu2+hv2*hv2<0.0035){r=214;g=182;b=92}
+      }else{
+        r=96;g=108;b=132;
+        const bx=Math.floor(wallX*3),by=Math.floor(texY*4);
+        if((bx+by)%2===0){r*=0.86;g*=0.86;b*=0.86}
+        if(wallX*3%1<0.05||texY*4%1<0.06){r*=0.62;g*=0.62;b*=0.62}
+        const vg=(texY<0.12||texY>0.9)?0.8:1;   // плинтус и карниз
+        r*=vg;g*=vg;b*=vg;
+      }
+      const k=fog*sf*li,o=(y*W+x)*4;
+      buf[o]=r*k*wr;buf[o+1]=g*k;buf[o+2]=b*k*wb;buf[o+3]=255;
+    }
+  }
+  const sprites=[];
+  for(let i=0;i<s.lamps.length;i++){const lp=s.lamps[i];
+    sprites.push({x:lp.x+0.5,y:lp.y+0.5,kind:'lamp',I:lp.I})}
+  if(!s.hasKey)sprites.push({x:s.key.x+0.5,y:s.key.y+0.5,kind:'key'});
+  if(s.doorOpen)sprites.push({x:s.door.x+0.5,y:s.door.y+0.5,kind:'portal'});
+  if(s.monster&&!s.caught)sprites.push({x:s.mx,y:s.my,kind:'monster'});
+  sprites.sort((a,b)=>Math.hypot(b.x-s.px,b.y-s.py)-Math.hypot(a.x-s.px,a.y-s.py));
+  const inv=1/(plX*dirY-dirX*plY);
+  for(const sp of sprites){
+    const rx=sp.x-s.px,ry=sp.y-s.py;
+    const tx=inv*(dirY*rx-dirX*ry),ty=inv*(-plY*rx+plX*ry);
+    if(ty<0.15)continue;
+    const sx=Math.floor(W/2*(1+tx/ty));
+    const lhSp=H/ty;
+    let size,cy;
+    if(sp.kind==='lamp'){size=Math.floor(lhSp*0.5);cy=Math.floor(half-lhSp/2+lhSp*0.10)}
+    else if(sp.kind==='key'){size=Math.floor(lhSp*0.55);cy=Math.floor(half+size*0.12+Math.sin(s.time*3)*size*0.06)}
+    else if(sp.kind==='portal'){size=Math.floor(lhSp*0.95);cy=Math.floor(half+size*0.06)}
+    else{size=Math.floor(lhSp*0.92);cy=Math.floor(half+size*0.06+Math.sin(s.time*6+1)*size*0.03)}
+    const fog=Math.min(1,1.45/(1+0.10*ty*ty));
+    const x0=Math.ceil(sx-size/2),x1=Math.floor(sx+size/2);
+    const y0s=Math.ceil(cy-size/2),y1s=Math.floor(cy+size/2);
+        if(sp.kind==='monster'){
+          // 3D-объём: послойные срезы с цилиндрическим затенением, контровым светом и дыханием
+          const t=s.time;
+          const lampLi=sampleLight(s,sp.x,sp.y);
+          const warm=0.88+0.30*lampLi, coolB=1.18-0.30*lampLi;
+          const rel=Math.atan2(s.py-sp.y,s.px-sp.x);
+          const lookX=Math.max(-0.035,Math.min(0.035,Math.sin(rel-s.ang)*0.05));
+          for(let y=y0s;y<=y1s;y++){
+            if(y<0||y>=H)continue;
+            const v=(y-(cy-size/2))/size-0.5;
+            const breath=1+0.03*Math.sin(t*2.1);
+            const q1=(v+0.30)/0.11,q2=v/0.17;
+            let rr=0.17*Math.exp(-q1*q1)+0.30*Math.exp(-q2*q2)+0.16*Math.max(0,v+0.1);
+            rr*=breath;
+            if(rr<0.02)continue;
+            const ox=Math.sin(t*1.3+v*2.5)*0.035;
+            for(let x=x0;x<=x1;x++){
+              if(x<0||x>=W||ty>=zbuf[x])continue;
+              const u=(x-(sx-size/2))/size-0.5;
+              const un=(u-ox)/rr;
+              if(un<-1||un>1)continue;
+              const o=(y*W+x)*4;
+              const d1x=u-ox+0.075-lookX,d2x=u-ox-0.075-lookX,dyy=v+0.30;
+              const e1=Math.sqrt(d1x*d1x+dyy*dyy),e2=Math.sqrt(d2x*d2x+dyy*dyy);
+              if(e1<0.035||e2<0.035){
+                const kk=Math.max(fog,0.55);
+                buf[o]=255*kk;buf[o+1]=64*kk;buf[o+2]=48*kk;buf[o+3]=255;
+              }else if(e1<0.09||e2<0.09){
+                const a=Math.max(0,1-Math.min(e1,e2)/0.09)*0.45;
+                buf[o]=buf[o]*(1-a)+255*a;buf[o+1]=buf[o+1]*(1-a)+64*a;buf[o+2]=buf[o+2]*(1-a)+48*a;
+              }else{
+                const cyl=Math.sqrt(1-un*un);
+                const sh=0.45+0.55*cyl;
+                const rim=Math.abs(un)>0.86?0.55:0;
+                const kk=fog;
+                buf[o]=((26*sh+6)*warm+rim*40)*kk;
+                buf[o+1]=((20*sh+4)+rim*70)*kk;
+                buf[o+2]=((34*sh+8)*coolB+rim*80)*kk;
+                buf[o+3]=255;
+              }
+            }
+          }
+          continue;
+        }
+    for(let x=x0;x<=x1;x++){
+      if(x<0||x>=W||ty>=zbuf[x])continue;
+      const u=(x-(sx-size/2))/size-0.5;
+      for(let y=y0s;y<=y1s;y++){
+        if(y<0||y>=H)continue;
+        const v=(y-(cy-size/2))/size-0.5;
+        const o=(y*W+x)*4;
+        if(sp.kind==='lamp'){
+          const I=sp.I;
+          if(Math.abs(u)<0.16&&Math.abs(v)<0.09){
+            buf[o]=255*I;buf[o+1]=244*I;buf[o+2]=206*I;buf[o+3]=255;
+          }else{
+            const r=Math.hypot(u*1.3,v*1.3);
+            if(r<0.5){const a=(1-r/0.5)*0.5*I;
+              buf[o]=buf[o]*(1-a)+255*a;buf[o+1]=buf[o+1]*(1-a)+224*a;buf[o+2]=buf[o+2]*(1-a)+150*a}
+          }
+          continue;
+        }
+        let hit=0,col=[0,0,0];
+        if(sp.kind==='key'){
+          const uu=u/(0.30+0.70*Math.abs(Math.sin(s.time*1.6)));
+          const hr=Math.hypot(uu,v+0.20);
+          if(hr<0.16&&hr>0.085)hit=1;
+          if(Math.abs(uu)<0.035&&v>-0.10&&v<0.34)hit=1;
+          if(uu>0.03&&uu<0.13&&(Math.abs(v-0.20)<0.03||Math.abs(v-0.29)<0.03))hit=1;
+          col=[255,205,70];
+        }else if(sp.kind==='portal'){
+          const d=Math.hypot(u*1.15,v);
+          if(d<0.46){hit=1;const t2=1-d/0.46;col=[40+60*t2,200+40*t2,150+80*t2]}
+        }else{
+          const body=(u*u)/0.075+((v-0.08)*(v-0.08))/0.16;
+          const hood=(u*u)/0.045+((v+0.22)*(v+0.22))/0.05;
+          if(body<1||hood<1){hit=1;const sh=0.75+0.25*Math.sin(u*22+s.time*4);
+            col=[26*sh+6,20*sh+4,34*sh+8]}
+          const e1=Math.hypot(u+0.085,v+0.24),e2=Math.hypot(u-0.085,v+0.24);
+          if(e1<0.035||e2<0.035){hit=1;col=[255,64,48]}
+          else if(e1<0.09||e2<0.09){          // bloom вокруг глаз
+            const a=Math.max(0,1-Math.min(e1,e2)/0.09)*0.45;
+            buf[o]=buf[o]*(1-a)+255*a;buf[o+1]=buf[o+1]*(1-a)+64*a;buf[o+2]=buf[o+2]*(1-a)+48*a;
+            continue;
+          }
+        }
+        if(hit){
+          const kk=(sp.kind==='monster'&&col[0]>200)?Math.max(fog,0.55):fog;
+          buf[o]=col[0]*kk;buf[o+1]=col[1]*kk;buf[o+2]=col[2]*kk;buf[o+3]=255;
+        }
+      }
+    }
+  }
+  // пост-обработка: виньетка + дизер против бандинга
+  const V=vignette(W,H);
+  const chaseP=(s.monster&&s.mMode==='chase')?Math.max(0,Math.sin(s.time*6.5)):0;
+  for(let y=0;y<H;y++){
+    const row=y*W;
+    for(let x=0;x<W;x++){
+      const o=(row+x)*4;
+      let k=V[row+x];
+      const d=BAYER[(y&3)*4+(x&3)]*0.5-3.5;
+      if(chaseP>0){
+        const eg=(1-k)/0.42;
+        k*=1-0.10*eg*chaseP;
+        buf[o]=buf[o]*k+d+eg*chaseP*26;buf[o+1]=buf[o+1]*k+d;buf[o+2]=buf[o+2]*k+d;
+      }else{
+        buf[o]=buf[o]*k+d;buf[o+1]=buf[o+1]*k+d;buf[o+2]=buf[o+2]*k+d;
+      }
+    }
+  }
+  return buf;
+}
+/* ==================== END CORE ==================== */
+</script>
+
+<script id="gpu">
+/* ================= WebGL2-рендерер: настоящее 3D, попиксельный свет, bloom, частицы ================= */
+const GPU={ok:false,ready:false,mode:'cpu'};
+(function(){
+const VS_WORLD=`#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec2 aUV;
+layout(location=2) in vec3 aNrm;
+layout(location=3) in float aAO;
+uniform mat4 uProj,uView,uModel;
+uniform float uTime,uWobble;
+out vec3 vW; out vec2 vUV; out vec3 vN; out float vAO;
+void main(){ vec3 p=aPos;
+  if(uWobble>0.5){ p+=aNrm*sin(uTime*2.3+aPos.y*5.0+aPos.x*3.0+aPos.z*3.0)*0.022*(0.35+aPos.y); }
+  vec4 w=uModel*vec4(p,1.0); vW=w.xyz; vUV=aUV; vN=normalize(mat3(uModel)*aNrm); vAO=aAO;
+  gl_Position=uProj*uView*w; }`;
+const FS_WORLD=`#version 300 es
+precision highp float;
+in vec3 vW; in vec2 vUV; in vec3 vN; in float vAO;
+uniform sampler2D uTex,uNrm,uLightMap;
+uniform vec2 uMapSize;
+uniform vec4 uLamps[24];
+uniform vec3 uCam,uFogCol,uFlatCol,uEmColor;
+uniform float uTime,uEmissive,uEmMode,uFlat,uFogDen,uRim;
+out vec4 o;
+void main(){
+  vec3 N=normalize(vN);
+  vec3 base=mix(texture(uTex,vUV).rgb, uFlatCol, uFlat);
+  if(uFlat<0.5){
+    vec3 nm=texture(uNrm,vUV).rgb*2.0-1.0;
+    N=normalize(N+nm*0.35);
+  }
+  vec2 lms=texture(uLightMap, clamp(vW.xz/uMapSize,vec2(0.001),vec2(0.999))).rg;
+  float gate=lms.g;                       // видимость света: за стеной точечные лампы не светят
+  vec3 col=base*lms.r*0.20*vAO;
+  for(int i=0;i<24;i++){
+    vec4 L=uLamps[i];
+    if(L.w<=0.001) continue;
+    vec3 d=vec3(L.x-vW.x, 0.92-vW.y, L.y-vW.z);
+    float dist=length(d);
+    if(dist>L.z) continue;
+    float att=1.0-dist/L.z; att*=att;
+    float nd=max(dot(N,normalize(d)),0.0);
+    col+=base*L.w*att*(0.22+0.78*nd)*vec3(1.0,0.90,0.74)*1.15*gate*vAO;
+  }
+  if(uEmissive>0.5){
+    float m=base.r;
+    if(uEmMode>1.5){
+      float r=length(vUV-0.5)*2.0;
+      float ring=smoothstep(0.55,0.70,r)*(1.0-smoothstep(0.85,1.0,r));
+      m=(0.35+0.9*ring)*(0.85+0.15*sin(uTime*2.2))*smoothstep(1.05,0.9,r);
+    }else if(uEmMode>0.5&&uEmMode<1.5){
+      m=1.0;
+    }
+    col=uEmColor*m;
+  }
+  if(uRim>0.5){
+    vec3 V=normalize(uCam-vW);
+    float fr=pow(1.0-max(dot(N,V),0.0),2.2);
+    col+=vec3(0.42,0.10,0.55)*fr*0.55+vec3(0.10,0.02,0.16)*fr*fr*1.2;
+  }
+  float dd=distance(uCam,vW);
+  float fog=1.0-exp(-uFogDen*dd*dd);
+  col=mix(col,uFogCol,clamp(fog,0.0,1.0));
+  o=vec4(col,1.0);
+}`;
+const VS_PT=`#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in float aSeed;
+uniform mat4 uProj,uView;
+uniform sampler2D uLightMap; uniform vec2 uMapSize;
+uniform float uTime;
+out float vA;
+void main(){
+  vec3 p=aPos;
+  p.y+=sin(uTime*0.35+aSeed*6.28)*0.06;
+  p.x+=sin(uTime*0.22+aSeed*12.0)*0.04;
+  float lm=texture(uLightMap, clamp(p.xz/uMapSize,vec2(0.001),vec2(0.999))).r;
+  vA=lm*0.30;
+  vec4 mv=uView*vec4(p,1.0);
+  gl_PointSize=max(1.0, 34.0/ max(0.1,-mv.z));
+  gl_Position=uProj*mv;
+}`;
+const FS_PT=`#version 300 es
+precision mediump float;
+in float vA; out vec4 o;
+void main(){ vec2 c=gl_PointCoord-0.5; float d=length(c);
+ float a=smoothstep(0.5,0.1,d)*vA; o=vec4(vec3(1.0,0.95,0.85)*a,a); }`;
+const VS_POST=`#version 300 es
+layout(location=0) in vec2 aP; out vec2 vUv;
+void main(){ vUv=aP*0.5+0.5; gl_Position=vec4(aP,0.0,1.0); }`;
+const FS_BRIGHT=`#version 300 es
+precision mediump float; in vec2 vUv; uniform sampler2D uS; out vec4 o;
+void main(){ vec3 c=texture(uS,vUv).rgb; float l=dot(c,vec3(0.299,0.587,0.114));
+ o=vec4(c*smoothstep(0.55,0.95,l),1.0); }`;
+const FS_BLUR=`#version 300 es
+precision mediump float; in vec2 vUv; uniform sampler2D uS; uniform vec2 uDir; out vec4 o;
+void main(){ vec3 c=texture(uS,vUv).rgb*0.227;
+ c+=texture(uS,vUv+uDir*1.384).rgb*0.316; c+=texture(uS,vUv-uDir*1.384).rgb*0.316;
+ c+=texture(uS,vUv+uDir*3.231).rgb*0.070; c+=texture(uS,vUv-uDir*3.231).rgb*0.070;
+ o=vec4(c,1.0); }`;
+const FS_COMP=`#version 300 es
+precision mediump float; in vec2 vUv;
+uniform sampler2D uScene,uBloom; uniform float uChase,uTime,uExp; out vec4 o;
+vec3 aces(vec3 x){
+  const float a=2.51,b=0.03,c=2.43,d=0.59,e=0.14;
+  return clamp((x*(a*x+b))/(x*(c*x+d)+e),0.0,1.0);
+}
+void main(){
+  vec2 q=vUv-0.5;
+  float ca=0.0035*dot(q,q);                 // хроматические аберрации по краям кадра
+  vec3 c;
+  c.r=texture(uScene,vUv+q*ca).r;
+  c.g=texture(uScene,vUv).g;
+  c.b=texture(uScene,vUv-q*ca).b;
+  c+=texture(uBloom,vUv).rgb*0.85;
+  c=aces(c*uExp);
+  c=pow(max(c,vec3(0.0)),vec3(1.0/2.2));
+  float vig=1.0-0.55*dot(q,q)*1.6;
+  c*=vig;
+  float edge=smoothstep(0.25,0.5,length(q));
+  c+=vec3(0.16,0.015,0.015)*edge*uChase*(0.5+0.5*sin(uTime*6.5));
+  float gr=fract(sin(dot(vUv*vec2(1234.5,678.9)+uTime,vec2(12.9898,78.233)))*43758.5453);
+  c+=(gr-0.5)*0.022;
+  o=vec4(c,1.0);
+}`;
+
+let gl,glv,progW,progP,progB,progBl,progC;
+let vaoW,vaoPt,vaoPost;
+let texTex,texNrm,texLM,fboScene,fboB1,fboB2;
+let U={},UP={},UB={},UBl={},UC={};
+let lampsArr=new Float32Array(24*4);
+let doorOpen=0, W=832, H=520;
+
+function sh(t,src){ const o=gl.createShader(t); gl.shaderSource(o,src); gl.compileShader(o);
+  if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) throw new Error('shader: '+gl.getShaderInfoLog(o));
+  return o; }
+function prog(v,f){ const p=gl.createProgram(); gl.attachShader(p,sh(gl.VERTEX_SHADER,v)); gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f));
+  gl.linkProgram(p); if(!gl.getProgramParameter(p,gl.LINK_STATUS)) throw new Error('link: '+gl.getProgramInfoLog(p)); return p; }
+function ulocs(p,names){ const o={}; for(const n of names) o[n]=gl.getUniformLocation(p,n); return o; }
+
+function m4persp(fovy,asp,n,f){ const t=1/Math.tan(fovy/2);
+  return new Float32Array([t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0]); }
+function look(cx,cy,cz,yaw,pitch){
+  const cp=Math.cos(pitch),sp=Math.sin(pitch);
+  const f=[Math.cos(yaw)*cp, sp, Math.sin(yaw)*cp];
+  // правый вектор = cross(f, worldUp): зеркалить мир нельзя, иначе A/D и мышь инвертируются
+  let r=[-f[2],0,f[0]];
+  const rl=Math.hypot(r[0],r[2])||1; r=[r[0]/rl,0,r[2]/rl];
+  // верх = cross(r, f): при pitch=0 это (0,1,0), иначе потолок окажется на полу
+  const u=[r[1]*f[2]-r[2]*f[1], r[2]*f[0]-r[0]*f[2], r[0]*f[1]-r[1]*f[0]];
+  const m=new Float32Array(16);
+  m[0]=r[0];m[4]=r[1];m[8]=r[2];m[12]=-(r[0]*cx+r[1]*cy+r[2]*cz);
+  m[1]=u[0];m[5]=u[1];m[9]=u[2];m[13]=-(u[0]*cx+u[1]*cy+u[2]*cz);
+  m[2]=-f[0];m[6]=-f[1];m[10]=-f[2];m[14]=(f[0]*cx+f[1]*cy+f[2]*cz);
+  m[3]=0;m[7]=0;m[11]=0;m[15]=1;
+  return m; }
+function m4mul(a,b){ const o=new Float32Array(16);
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++){ let s=0; for(let k=0;k<4;k++) s+=a[k*4+j]*b[i*4+k]; o[i*4+j]=s; } return o; }
+function m4t(x,y,z){ const m=new Float32Array(16); m[0]=1;m[5]=1;m[10]=1;m[15]=1;m[12]=x;m[13]=y;m[14]=z; return m; }
+function m4rotY(a){ const c=Math.cos(a),s=Math.sin(a); const m=new Float32Array(16);
+  m[0]=c;m[2]=-s;m[5]=1;m[8]=s;m[10]=c;m[15]=1; return m; }
+function m4rotX(a){ const c=Math.cos(a),s=Math.sin(a); const m=new Float32Array(16);
+  m[0]=1;m[5]=c;m[6]=s;m[9]=-s;m[10]=c;m[15]=1; return m; }
+function m4rotZ(a){ const c=Math.cos(a),s=Math.sin(a); const m=new Float32Array(16);
+  m[0]=c;m[1]=s;m[4]=-s;m[5]=c;m[10]=1;m[15]=1; return m; }
+
+/* ---------- процедурные текстуры и normal-карта ---------- */
+function makeTex(fn,size){
+  const c=document.createElement('canvas'); c.width=c.height=size;
+  const x=c.getContext('2d'); fn(x,size);
+  return x.getImageData(0,0,size,size); }
+function heightToNormal(id,size,strength){
+  const d=id.data, out=new Uint8Array(size*size*4);
+  const h=(xx,yy)=>{ xx=(xx+size)%size; yy=(yy+size)%size; return d[(yy*size+xx)*4]/255; };
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const dx=(h(x+1,y)-h(x-1,y))*strength, dy=(h(x,y+1)-h(x,y-1))*strength;
+    const l=Math.hypot(dx,dy,1);
+    const o=(y*size+x)*4;
+    out[o]=(-dx/l*0.5+0.5)*255; out[o+1]=(-dy/l*0.5+0.5)*255; out[o+2]=(1/l*0.5+0.5)*255; out[o+3]=255;
+  }
+  return out; }
+function noiseInto(x,size,amp){
+  const id=x.getImageData(0,0,size,size);
+  for(let i=0;i<id.data.length;i+=4){
+    const n=(Math.random()-0.5)*amp;
+    id.data[i]=Math.max(0,Math.min(255,id.data[i]+n));
+    id.data[i+1]=Math.max(0,Math.min(255,id.data[i+1]+n));
+    id.data[i+2]=Math.max(0,Math.min(255,id.data[i+2]+n));
+  }
+  x.putImageData(id,0,0); }
+function buildAtlas(){
+  const S=512, H=S/2;
+  const rr=(a,b)=>a+Math.random()*(b-a);
+  const col=makeTex((x,s)=>{
+    /* ---- СТЕНА (0,0): старый кирпич с штукатуркой и копотью ---- */
+    x.fillStyle='#242833'; x.fillRect(0,0,H,H);
+    const rows=10, bh=H/rows, bw=H/4;
+    for(let r=0;r<rows;r++){
+      const off=(r%2)*(bw/2);
+      for(let cX=-1;cX<5;cX++){
+        const l=rr(21,30), hue=rr(208,222), sat=rr(6,11);
+        x.fillStyle='hsl('+hue.toFixed(0)+','+sat.toFixed(0)+'%,'+l.toFixed(0)+'%)';
+        x.fillRect(cX*bw+off+2, r*bh+2, bw-4, bh-4);
+        const g=x.createLinearGradient(0,r*bh,0,r*bh+bh);
+        g.addColorStop(0,'rgba(255,255,255,0.07)');g.addColorStop(0.55,'rgba(255,255,255,0)');
+        g.addColorStop(1,'rgba(0,0,0,0.25)');
+        x.fillStyle=g; x.fillRect(cX*bw+off+2, r*bh+2, bw-4, bh-4);
+        if(Math.random()<0.18){ x.fillStyle='rgba(0,0,0,0.35)';   // сколы
+          x.beginPath(); x.arc(cX*bw+off+rr(4,bw-4), r*bh+rr(3,bh-3), rr(1.5,4),0,7); x.fill(); }
+      }
+    }
+    for(let i=0;i<6;i++){   // пятна штукатурки
+      x.fillStyle='rgba('+(140+rr(0,40)|0)+','+(142+rr(0,40)|0)+','+(135+rr(0,40)|0)+',0.14)';
+      x.beginPath(); x.ellipse(rr(0,H),rr(0,H),rr(18,60),rr(12,40),rr(0,3),0,7); x.fill();
+    }
+    for(let i=0;i<12;i++){  // копоть
+      const gx=rr(0,H),gy=rr(0,H),gr=rr(24,80);
+      const g=x.createRadialGradient(gx,gy,0,gx,gy,gr);
+      g.addColorStop(0,'rgba(0,0,0,0.28)');g.addColorStop(1,'rgba(0,0,0,0)');
+      x.fillStyle=g;x.fillRect(gx-gr,gy-gr,gr*2,gr*2);
+    }
+    /* ---- ПОЛ (1,0): бетонные плиты со швами, трещинами и грязью ---- */
+    x.fillStyle='#2b2e34'; x.fillRect(H,0,H,H);
+    for(let i=0;i<2;i++)for(let j=0;j<2;j++){
+      const sx=H+i*H/2, sy=j*H/2;
+      x.fillStyle='hsl(216,'+rr(4,9).toFixed(0)+'%,'+rr(17,25).toFixed(0)+'%)';
+      x.fillRect(sx+3,sy+3,H/2-6,H/2-6);
+      const g=x.createLinearGradient(sx,sy,sx+H/2,sy+H/2);
+      g.addColorStop(0,'rgba(255,255,255,0.05)');g.addColorStop(1,'rgba(0,0,0,0.18)');
+      x.fillStyle=g;x.fillRect(sx+3,sy+3,H/2-6,H/2-6);
+      for(let k=0;k<240;k++){  // крап
+        x.fillStyle='rgba('+(rr(90,150)|0)+','+(rr(95,150)|0)+','+(rr(100,150)|0)+','+rr(0.03,0.10).toFixed(2)+')';
+        x.fillRect(sx+rr(0,H/2),sy+rr(0,H/2),rr(1,2.4),rr(1,2.4));
+      }
+    }
+    x.strokeStyle='rgba(8,10,14,0.9)'; x.lineWidth=5;
+    x.strokeRect(H+1.5,1.5,H-3,H-3);
+    x.beginPath(); x.moveTo(H+H/2,0); x.lineTo(H+H/2,H); x.moveTo(H,H/2); x.lineTo(S,H/2); x.stroke();
+    for(let i=0;i<7;i++){   // трещины
+      x.strokeStyle='rgba(10,12,16,'+rr(0.35,0.6).toFixed(2)+')'; x.lineWidth=rr(1,2);
+      let cx=H+rr(10,H-10), cy=rr(10,H-10);
+      x.beginPath(); x.moveTo(cx,cy);
+      for(let k=0;k<6;k++){ cx+=rr(-24,24); cy+=rr(-24,24); x.lineTo(cx,cy); }
+      x.stroke();
+    }
+    for(let i=0;i<8;i++){   // грязь/разводы
+      const gx=H+rr(0,H),gy=rr(0,H),gr=rr(20,70);
+      const g=x.createRadialGradient(gx,gy,0,gx,gy,gr);
+      g.addColorStop(0,'rgba(18,16,12,0.30)');g.addColorStop(1,'rgba(18,16,12,0)');
+      x.fillStyle=g;x.fillRect(gx-gr,gy-gr,gr*2,gr*2);
+    }
+    /* ---- ПОТОЛОК (0,1): тёмная штукатурка, швы панелей, потёки ---- */
+    x.fillStyle='#191c22'; x.fillRect(0,H,H,H);
+    x.strokeStyle='rgba(10,12,16,0.85)'; x.lineWidth=3;
+    for(let i=0;i<=4;i++){ x.beginPath(); x.moveTo(i*H/4,H); x.lineTo(i*H/4,S); x.stroke();
+      x.beginPath(); x.moveTo(0,H+i*H/4); x.lineTo(H,H+i*H/4); x.stroke(); }
+    for(let i=0;i<9;i++){   // потёки-кольца
+      const gx=rr(0,H),gy=H+rr(0,H),gr=rr(14,52);
+      const g=x.createRadialGradient(gx,gy,gr*0.55,gx,gy,gr);
+      g.addColorStop(0,'rgba(70,56,36,0)');g.addColorStop(0.75,'rgba(72,58,38,0.22)');g.addColorStop(1,'rgba(70,56,36,0)');
+      x.fillStyle=g;x.fillRect(gx-gr,gy-gr,gr*2,gr*2);
+    }
+    for(let i=0;i<400;i++){ x.fillStyle='rgba(255,255,255,'+rr(0.01,0.035).toFixed(3)+')';
+      x.fillRect(rr(0,H),H+rr(0,H),rr(1,3),rr(1,3)); }
+    /* ---- ДВЕРЬ (1,1): металл, панели, заклёпки, аварийная полоса ---- */
+    x.fillStyle='#2e343c'; x.fillRect(H,H,H,H);
+    for(let i=0;i<420;i++){ x.fillStyle='rgba(255,255,255,'+rr(0.015,0.045).toFixed(3)+')';
+      const lx=H+rr(0,H); x.fillRect(lx,H,1,H); }
+    x.strokeStyle='rgba(12,15,20,0.9)'; x.lineWidth=6;
+    x.strokeRect(H+26,H+26,H-52,H*0.30);
+    x.strokeRect(H+26,H+H*0.62,H-52,H*0.30);
+    for(let i=0;i<26;i++){   // заклёпки по периметру
+      const t=i/26, px=H+10+ (i%2? H-20:0) + (i%2?0:0), py=H+10+t*(H-20);
+      const qx=H+10+t*(H-20);
+      for(const [ax,ay] of [[px,py],[qx,H+10],[qx,S-10]]){
+        const g=x.createRadialGradient(ax-1,ay-1,0,ax,ay,4);
+        g.addColorStop(0,'rgba(220,228,238,0.75)');g.addColorStop(1,'rgba(20,24,30,0.9)');
+        x.fillStyle=g;x.beginPath();x.arc(ax,ay,3.4,0,7);x.fill();
+      }
+    }
+    x.save(); x.beginPath(); x.rect(H,H+H*0.44,H,H*0.13); x.clip();   // аварийная полоса
+    for(let i=-10;i<20;i++){
+      x.fillStyle=(i%2)?'#b8902a':'#141821';
+      x.beginPath(); x.moveTo(H+i*26,H+H*0.44); x.lineTo(H+i*26+13,H+H*0.44);
+      x.lineTo(H+i*26+13-H*0.13,H+H*0.57); x.lineTo(H+i*26-H*0.13,H+H*0.57); x.fill();
+    }
+    x.restore();
+    x.fillStyle='rgba(20,60,40,0.9)'; x.fillRect(S-46,H+H*0.47,26,18);   // табло «выход»
+    x.fillStyle='#57e6a0'; x.fillRect(S-42,H+H*0.47+4,18,10);
+    noiseInto(x,s,22);
+  },S);
+  const hgt=makeTex((x,s)=>{
+    x.fillStyle='#808080'; x.fillRect(0,0,s,s);
+    const H2=s/2, rows=10, bh=H2/rows, bw=H2/4;
+    x.fillStyle='#484848';                                   // швы кирпича
+    for(let r=0;r<=rows;r++) x.fillRect(0,r*bh-1,H2,3);
+    for(let r=0;r<rows;r++){ const off=(r%2)*(bw/2);
+      for(let cX=0;cX<5;cX++) x.fillRect(cX*bw+off-1,r*bh,3,bh); }
+    x.fillStyle='#585858';                                   // швы плит пола
+    x.fillRect(H2,0,5,s/2); x.fillRect(0,0,0,0);
+    x.fillRect(H2+H2/2-2,0,4,H2); x.fillRect(H2,H2/2-2,H2,4);
+    x.fillRect(H2,0,5,0);
+    x.strokeStyle='#565656'; x.lineWidth=5; x.strokeRect(H2+2,2,H2-4,H2-4);
+    x.fillStyle='#6c6c6c';                                   // швы панелей потолка
+    for(let i=0;i<=4;i++){ x.fillRect(i*H2/4-1,H2,3,H2); x.fillRect(0,H2+i*H2/4-1,H2,3); }
+    x.strokeStyle='#5a5a5a'; x.lineWidth=6;                  // филёнки двери
+    x.strokeRect(H2+26,H2+26,H2-52,H2*0.30);
+    x.strokeRect(H2+26,H2+H2*0.62,H2-52,H2*0.30);
+    x.fillStyle='#a8a8a8';                                   // заклёпки
+    for(let i=0;i<26;i++){ const t=i/26;
+      for(const [ax,ay] of [[H2+10+(i%2?H2-20:0),H2+10+t*(H2-20)],[H2+10+t*(H2-20),H2+10],[H2+10+t*(H2-20),s-10]]){
+        x.beginPath();x.arc(ax,ay,3,0,7);x.fill(); } }
+    noiseInto(x,s,42);
+  },S);
+  return {col:col,nrm:heightToNormal(hgt,S,2.6),size:S}; }
+
+/* ---------- геометрия ---------- */
+function makeVAO(arr){
+  const vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,36,0);
+  gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,2,gl.FLOAT,false,36,12);
+  gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,3,gl.FLOAT,false,36,20);
+  gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3,1,gl.FLOAT,false,36,32);
+  gl.bindVertexArray(null);
+  return vao; }
+function buildWorld(S){
+  const V=[];
+  const push=(px,py,pz,u,v,nx,ny,nz,ao)=>{ V.push(px,py,pz,u,v,nx,ny,nz,ao); };
+  const quad=(a,b,c,d,uvs,n,aos)=>{
+    push(a[0],a[1],a[2],uvs[0],uvs[1],n[0],n[1],n[2],aos[0]);
+    push(b[0],b[1],b[2],uvs[2],uvs[3],n[0],n[1],n[2],aos[1]);
+    push(c[0],c[1],c[2],uvs[4],uvs[5],n[0],n[1],n[2],aos[2]);
+    push(a[0],a[1],a[2],uvs[0],uvs[1],n[0],n[1],n[2],aos[0]);
+    push(c[0],c[1],c[2],uvs[4],uvs[5],n[0],n[1],n[2],aos[2]);
+    push(d[0],d[1],d[2],uvs[6],uvs[7],n[0],n[1],n[2],aos[3]); };
+  const Q=(qx,qy)=>[qx*0.5,qy*0.5, qx*0.5+0.5,qy*0.5, qx*0.5+0.5,qy*0.5+0.5, qx*0.5,qy*0.5+0.5];
+  const solid=(x,z)=> x<0||z<0||x>=S.W||z>=S.H||S.grid[z*S.W+x]===1||S.grid[z*S.W+x]===2;
+  /* контактное затенение: угол пола/потолка темнее, если вокруг стены */
+  const cornerAO=(gx,gz)=>{ let k=0;
+    if(solid(gx-1,gz-1))k++; if(solid(gx,gz-1))k++; if(solid(gx-1,gz))k++; if(solid(gx,gz))k++;
+    return 1-0.10*k; };
+  const wallAO=y=>{ const t=Math.min(1,y/0.38); const top=y>0.82?0.86:1;   // плинтус-тень и карниз
+    return (0.55+0.45*t*(2-t))*top; };
+  for(let z=0;z<S.H;z++)for(let x=0;x<S.W;x++){
+    const g=S.grid[z*S.W+x];
+    if(g===1||g===2){
+      const q=g===2?Q(1,1):Q(0,0);
+      if(!solid(x-1,z)) quad([x,0,z],[x,1,z],[x,1,z+1],[x,0,z+1],q,[-1,0,0],
+        [wallAO(0),wallAO(1),wallAO(1),wallAO(0)]);
+      if(!solid(x+1,z)) quad([x+1,0,z+1],[x+1,1,z+1],[x+1,1,z],[x+1,0,z],q,[1,0,0],
+        [wallAO(0),wallAO(1),wallAO(1),wallAO(0)]);
+      if(!solid(x,z-1)) quad([x+1,0,z],[x+1,1,z],[x,1,z],[x,0,z],q,[0,0,-1],
+        [wallAO(0),wallAO(1),wallAO(1),wallAO(0)]);
+      if(!solid(x,z+1)) quad([x,0,z+1],[x,1,z+1],[x+1,1,z+1],[x+1,0,z+1],q,[0,0,1],
+        [wallAO(0),wallAO(1),wallAO(1),wallAO(0)]);
+      quad([x,1,z],[x,1,z+1],[x+1,1,z+1],[x+1,1,z],Q(0,1),[0,1,0],
+        [cornerAO(x,z)*0.72,cornerAO(x,z+1)*0.72,cornerAO(x+1,z+1)*0.72,cornerAO(x+1,z)*0.72]);
+    } else {
+      quad([x,0,z+1],[x+1,0,z+1],[x+1,0,z],[x,0,z],Q(1,0),[0,1,0],
+        [cornerAO(x,z+1),cornerAO(x+1,z+1),cornerAO(x+1,z),cornerAO(x,z)]);
+      quad([x,1,z],[x+1,1,z],[x+1,1,z+1],[x,1,z+1],Q(0,1),[0,-1,0],
+        [cornerAO(x,z)*0.72,cornerAO(x+1,z)*0.72,cornerAO(x+1,z+1)*0.72,cornerAO(x,z+1)*0.72]);
+    }
+  }
+  vaoW=makeVAO(new Float32Array(V));
+  return V.length/9; }
+function loftMesh(profileFn,segs,rows,hScale,yOff){
+  const V=[];
+  for(let i=0;i<rows;i++){
+    const v0=i/rows-0.5, v1=(i+1)/rows-0.5;
+    const r0=Math.max(0.02,profileFn(v0)), r1=Math.max(0.02,profileFn(v1));
+    const y0=(0.5-v0)*hScale+yOff, y1=(0.5-v1)*hScale+yOff;
+    for(let sN=0;sN<segs;sN++){
+      const a0=sN/segs*Math.PI*2, a1=(sN+1)/segs*Math.PI*2;
+      const am=(a0+a1)/2;
+      const p=[[Math.cos(a0)*r0,y0,Math.sin(a0)*r0],[Math.cos(a0)*r1,y1,Math.sin(a0)*r1],
+               [Math.cos(a1)*r1,y1,Math.sin(a1)*r1],[Math.cos(a1)*r0,y0,Math.sin(a1)*r0]];
+      const n=[Math.cos(am),0.25,Math.sin(am)];
+      for(const tri of [[0,1,2],[0,2,3]]) for(const idx of tri){
+        V.push(p[idx][0],p[idx][1],p[idx][2], 0.5,0.5, n[0],n[1],n[2], 1);
+      }
+    }
+  }
+  return {vao:makeVAO(new Float32Array(V)),n:V.length/9}; }
+function boxMesh(w,h,d){
+  const V=[]; const q=(a,b,c,d,n)=>{ for(const tri of [[0,1,2],[0,2,3]]) for(const i of tri){ const p=[a,b,c,d][i]; V.push(p[0],p[1],p[2],0.5,0.5,n[0],n[1],n[2], p[1]<=0.001?0.85:1); } };
+  q([-w,0,-d],[w,0,-d],[w,h,-d],[-w,h,-d],[0,0,-1]);
+  q([w,0,d],[-w,0,d],[-w,h,d],[w,h,d],[0,0,1]);
+  q([w,0,-d],[w,0,d],[w,h,d],[w,h,-d],[1,0,0]);
+  q([-w,0,d],[-w,0,-d],[-w,h,-d],[-w,h,d],[-1,0,0]);
+  q([-w,h,d],[w,h,d],[w,h,-d],[-w,h,-d],[0,1,0]);
+  return {vao:makeVAO(new Float32Array(V)),n:V.length/9}; }
+function discMesh(r,seg){
+  const V=[];
+  for(let i=0;i<seg;i++){
+    const a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2;
+    V.push(0,0,0,0.5,0.5,0,1,0,1);
+    V.push(Math.cos(a0)*r,0,Math.sin(a0)*r,0.5+Math.cos(a0)*0.5,0.5+Math.sin(a0)*0.5,0,1,0,0.9);
+    V.push(Math.cos(a1)*r,0,Math.sin(a1)*r,0.5+Math.cos(a1)*0.5,0.5+Math.sin(a1)*0.5,0,1,0,0.9);
+  }
+  return {vao:makeVAO(new Float32Array(V)),n:V.length/9}; }
+function fbo(w,h,depth){
+  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  const f=gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER,f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+  let r=null;
+  if(depth){ r=gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER,r);
+    gl.renderbufferStorage(gl.RENDERBUFFER,gl.DEPTH_COMPONENT16,w,h);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,r); }
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  return {f,t,w,h,r}; }
+function delFbo(o){ if(!o)return; gl.deleteTexture(o.t); gl.deleteFramebuffer(o.f); if(o.r)gl.deleteRenderbuffer(o.r); }
+
+GPU.init=function(canvas,S){
+  try{
+    doorOpen=0;
+    gl=canvas.getContext('webgl2',{antialias:true,alpha:false});
+    if(!gl) return false;
+    glv=canvas;
+    progW=prog(VS_WORLD,FS_WORLD); progP=prog(VS_PT,FS_PT);
+    progB=prog(VS_POST,FS_BRIGHT); progBl=prog(VS_POST,FS_BLUR); progC=prog(VS_POST,FS_COMP);
+    U=ulocs(progW,['uProj','uView','uModel','uTex','uNrm','uLightMap','uMapSize','uLamps[0]','uCam','uFogCol','uFlatCol','uEmColor','uTime','uEmissive','uEmMode','uFlat','uFogDen','uWobble','uRim']);
+    UP=ulocs(progP,['uProj','uView','uLightMap','uMapSize','uTime']);
+    UB=ulocs(progB,['uS']); UBl=ulocs(progBl,['uS','uDir']); UC=ulocs(progC,['uScene','uBloom','uChase','uTime','uExp']);
+    const atl=buildAtlas();
+    texTex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texTex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,atl.size,atl.size,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(atl.col.data.buffer));
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+    texNrm=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texNrm);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,atl.size,atl.size,0,gl.RGBA,gl.UNSIGNED_BYTE,atl.nrm);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+    texLM=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texLM);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);   // строки lightmap не кратны 4 байтам — без этого свет едет мусором
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    GPU.wCount=buildWorld(S);
+    GPU.monster=loftMesh(v=>{ const q1=(v+0.30)/0.11,q2=v/0.17;
+      return (0.17*Math.exp(-q1*q1)+0.30*Math.exp(-q2*q2)+0.16*Math.max(0,v+0.1))*0.9; },14,22,0.95,0.03);
+    GPU.keyM=boxMesh(0.05,0.30,0.05);
+    GPU.keyBar=boxMesh(0.028,0.16,0.05);
+    GPU.portalM=discMesh(0.42,26);
+    GPU.lampM=boxMesh(0.15,0.045,0.15);
+    GPU.eyeM=boxMesh(0.028,0.028,0.028);
+    GPU.doorM=boxMesh(0.46,0.98,0.06);
+    GPU.padM=discMesh(0.46,28);
+    const dn=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>[S.door.x+dx,S.door.y+dy])
+      .find(q=>q[0]>=0&&q[1]>=0&&q[0]<S.W&&q[1]<S.H&&S.grid[q[1]*S.W+q[0]]===0);
+    GPU.doorYaw=dn?Math.atan2(dn[0]-S.door.x,dn[1]-S.door.y):0;
+    const PN=220, PV=[];
+    for(let i=0;i<PN;i++){ const f=S.floors[(Math.random()*S.floors.length)|0];
+      PV.push((f%S.W)+0.2+Math.random()*0.6, 0.15+Math.random()*0.7, ((f/S.W)|0)+0.2+Math.random()*0.6, Math.random()); }
+    vaoPt=gl.createVertexArray(); gl.bindVertexArray(vaoPt);
+    gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(PV),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,1,gl.FLOAT,false,16,12);
+    gl.bindVertexArray(null);
+    GPU.ptN=PN;
+    vaoPost=gl.createVertexArray(); gl.bindVertexArray(vaoPost);
+    gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+    gl.bindVertexArray(null);
+    GPU.mapW=S.W; GPU.mapH=S.H;
+    GPU.lmBuf=new Uint8Array(S.W*S.H*2);
+    GPU.sig=S.seed+'_'+S.W+'x'+S.H;
+    GPU.ready=true;
+    return true;
+  }catch(e){ console.warn('GPU init failed: '+e.message); GPU.ready=false; return false; }
+};
+GPU.resize=function(w,h){
+  W=w;H=h;
+  glv.width=w; glv.height=h;
+  delFbo(fboScene); delFbo(fboB1); delFbo(fboB2);
+  fboScene=fbo(w,h,true);
+  const bw=Math.max(1,w>>1),bh=Math.max(1,h>>1);
+  fboB1=fbo(bw,bh,false); fboB2=fbo(bw,bh,false);
+};
+const IDENT=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
+GPU.frame=function(S,dt){
+  if(!GPU.ready) return;
+  const ncell=GPU.mapW*GPU.mapH;
+  for(let i=0;i<ncell;i++){
+    GPU.lmBuf[i*2]=Math.max(0,Math.min(255,S.light[i]*255));
+    GPU.lmBuf[i*2+1]=Math.max(0,Math.min(255,(S.gate?S.gate[i]:1)*255));
+  }
+  gl.bindTexture(gl.TEXTURE_2D,texLM);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RG8,GPU.mapW,GPU.mapH,0,gl.RG,gl.UNSIGNED_BYTE,GPU.lmBuf);
+  lampsArr.fill(0);
+  if(S.lamps){
+    const near=S.lamps.map(l=>({l,d:Math.hypot(l.x-S.px,l.y-S.py),r:3.2}));
+    if(!S.hasKey)near.push({l:{x:S.key.x,y:S.key.y,I:0.5},d:Math.hypot(S.key.x-S.px,S.key.y-S.py),r:1.8});
+    near.sort((a,b)=>a.d-b.d);
+    near.slice(0,24).forEach((e,i)=>{ lampsArr[i*4]=e.l.x+0.5; lampsArr[i*4+1]=e.l.y+0.5; lampsArr[i*4+2]=e.r; lampsArr[i*4+3]=e.l.I*1.15; });
+  }
+  doorOpen+=((S.doorOpen?1:0)-doorOpen)*Math.min(1,dt*4);
+  const proj=m4persp(75*Math.PI/180,W/H,0.05,70);
+  // head-bob: покачивание камеры в такт шагам
+  const bobY=Math.sin(S.bobT*8.4)*0.022*S.bobA, bobX=Math.cos(S.bobT*4.2)*0.016*S.bobA;
+  const view=look(S.px-Math.sin(S.ang)*bobX, 0.55+bobY, S.py+Math.cos(S.ang)*bobX,
+    S.ang, (S.pitch||0)+Math.sin(S.bobT*8.4+1.7)*0.006*S.bobA);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,fboScene.f);
+  gl.viewport(0,0,W,H);
+  gl.clearColor(0.015,0.017,0.026,1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+  gl.useProgram(progW);
+  gl.uniformMatrix4fv(U.uProj,false,proj); gl.uniformMatrix4fv(U.uView,false,view);
+  gl.uniform1i(U.uTex,0); gl.uniform1i(U.uNrm,1); gl.uniform1i(U.uLightMap,2);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,texTex);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,texNrm);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,texLM);
+  gl.uniform2f(U.uMapSize,GPU.mapW,GPU.mapH);
+  gl.uniform4fv(U['uLamps[0]'],lampsArr);
+  gl.uniform3f(U.uCam,S.px,0.55,S.py);
+  gl.uniform3f(U.uFogCol,0.008,0.010,0.017);
+  gl.uniform1f(U.uFogDen,0.031);
+  gl.uniform1f(U.uTime,S.time);
+  gl.uniform1f(U.uWobble,0); gl.uniform1f(U.uRim,0);
+  gl.uniform1f(U.uEmissive,0); gl.uniform1f(U.uEmMode,0); gl.uniform1f(U.uFlat,0);
+  gl.uniformMatrix4fv(U.uModel,false,IDENT);
+  gl.bindVertexArray(vaoW); gl.drawArrays(gl.TRIANGLES,0,GPU.wCount);
+  gl.uniform1f(U.uEmissive,1); gl.uniform1f(U.uEmMode,2); gl.uniform3f(U.uEmColor,0.15,0.95,0.75);
+  gl.uniformMatrix4fv(U.uModel,false,m4t(S.start.x+0.5,0.02,S.start.y+0.5));
+  gl.bindVertexArray(GPU.padM.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.padM.n);
+  // плафоны
+  gl.uniform1f(U.uEmMode,1); gl.uniform1f(U.uFlat,1); gl.uniform3f(U.uFlatCol,1,1,1);
+  gl.bindVertexArray(GPU.lampM.vao);
+  for(let i=0;i<24;i++){
+    const I=lampsArr[i*4+3];
+    if(I<=0.05) continue;
+    gl.uniform3f(U.uEmColor,Math.min(1,I),Math.min(1,I*0.93),Math.min(1,I*0.78));
+    gl.uniformMatrix4fv(U.uModel,false,m4t(lampsArr[i*4],0.90,lampsArr[i*4+1]));
+    gl.drawArrays(gl.TRIANGLES,0,GPU.lampM.n);
+  }
+  gl.uniform1f(U.uEmissive,0); gl.uniform1f(U.uEmMode,0); gl.uniform1f(U.uFlat,0);
+  gl.uniform1f(U.uFlat,1); gl.uniform3f(U.uFlatCol,0.42,0.28,0.15);
+  gl.uniformMatrix4fv(U.uModel,false,m4mul(m4t(S.door.x+0.5,doorOpen*1.05,S.door.y+0.5),m4rotY(GPU.doorYaw)));
+  gl.bindVertexArray(GPU.doorM.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.doorM.n);
+  if(!S.hasKey){
+    const mm=m4mul(m4t(S.key.x+0.5,0.35+Math.sin(S.time*3)*0.05,S.key.y+0.5),m4rotY(S.time*1.6));
+    gl.uniform3f(U.uFlatCol,0.95,0.75,0.25);
+    gl.uniformMatrix4fv(U.uModel,false,mm);
+    gl.bindVertexArray(GPU.keyM.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.keyM.n);
+    const bar=m4mul(m4mul(mm,m4t(0,0.24,0)),m4mul(m4rotZ(Math.PI/2),m4t(0,-0.08,0)));
+    gl.uniformMatrix4fv(U.uModel,false,bar);
+    gl.bindVertexArray(GPU.keyBar.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.keyBar.n);
+  }
+  // портал выхода: зелёное свечение в проёме открытой двери (в тон миникарте)
+  if(doorOpen>0.03){
+    const pm=m4mul(m4t(S.door.x+0.5,0.52,S.door.y+0.5),m4mul(m4rotY(GPU.doorYaw),m4rotX(Math.PI/2)));
+    const pulse=0.7+0.3*Math.sin(S.time*3.1);
+    gl.uniform1f(U.uEmissive,1); gl.uniform1f(U.uEmMode,1); gl.uniform1f(U.uFlat,1);
+    gl.uniform3f(U.uFlatCol,1,1,1);
+    gl.uniform3f(U.uEmColor,0.16*pulse,0.95*pulse,0.45*pulse);
+    gl.uniformMatrix4fv(U.uModel,false,pm);
+    gl.bindVertexArray(GPU.portalM.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.portalM.n);
+    gl.uniform1f(U.uEmissive,0); gl.uniform1f(U.uFlat,0);
+  }
+  if(S.monster&&!S.caught){
+    const dxp=S.px-S.mx,dzp=S.py-S.my;
+    const yawM=Math.atan2(dxp,dzp);   // локальный +z меша (глаза) должен смотреть на игрока
+    const mm=m4mul(m4t(S.mx,0,S.my),m4rotY(yawM));
+    gl.uniform1f(U.uFlat,1); gl.uniform3f(U.uFlatCol,0.10,0.08,0.14);
+    gl.uniform1f(U.uWobble,1); gl.uniform1f(U.uRim,1);
+    gl.uniformMatrix4fv(U.uModel,false,mm);
+    gl.bindVertexArray(GPU.monster.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.monster.n);
+    gl.uniform1f(U.uWobble,0); gl.uniform1f(U.uRim,0);
+    gl.uniform1f(U.uEmissive,1); gl.uniform1f(U.uEmMode,1); gl.uniform3f(U.uEmColor,1.0,0.18,0.12);
+    for(const ex of [-0.075,0.075]){
+      const em=m4mul(mm,m4t(ex,0.76,0.13));
+      gl.uniformMatrix4fv(U.uModel,false,em);
+      gl.bindVertexArray(GPU.eyeM.vao); gl.drawArrays(gl.TRIANGLES,0,GPU.eyeM.n);
+    }
+    gl.uniform1f(U.uEmissive,0);
+  }
+  gl.uniform1f(U.uFlat,0);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE); gl.depthMask(false);
+  gl.useProgram(progP);
+  gl.uniformMatrix4fv(UP.uProj,false,proj); gl.uniformMatrix4fv(UP.uView,false,view);
+  gl.uniform1i(UP.uLightMap,2); gl.uniform2f(UP.uMapSize,GPU.mapW,GPU.mapH);
+  gl.uniform1f(UP.uTime,S.time);
+  gl.bindVertexArray(vaoPt); gl.drawArrays(gl.POINTS,0,GPU.ptN);
+  gl.depthMask(true); gl.disable(gl.BLEND);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,fboB1.f); gl.viewport(0,0,fboB1.w,fboB1.h);
+  gl.useProgram(progB);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,fboScene.t);
+  gl.uniform1i(UB.uS,0); gl.bindVertexArray(vaoPost); gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,fboB2.f); gl.useProgram(progBl);
+  gl.bindTexture(gl.TEXTURE_2D,fboB1.t); gl.uniform1i(UBl.uS,0);
+  gl.uniform2f(UBl.uDir,1/fboB1.w,0); gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,fboB1.f);
+  gl.bindTexture(gl.TEXTURE_2D,fboB2.t); gl.uniform2f(UBl.uDir,0,1/fboB1.h); gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,W,H);
+  gl.useProgram(progC);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,fboScene.t); gl.uniform1i(UC.uScene,0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,fboB1.t); gl.uniform1i(UC.uBloom,1);
+  gl.uniform1f(UC.uChase,(S.monster&&S.mMode==='chase')?1:0);
+  gl.uniform1f(UC.uTime,S.time);
+  gl.uniform1f(UC.uExp,1.02);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+};
+GPU.clearBlack=function(){ if(!GPU.ready)return;
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  gl.viewport(0,0,W,H); gl.clearColor(0,0,0,1);
+  gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT); };
+GPU.look=look;   // экспорт для регресс-теста ориентации камеры
+GPU.glString=function(){ try{ const e=gl.getExtension('WEBGL_debug_renderer_info');
+  return e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER); }catch(e){ return ''; } };
+})();
+</script>
+
+<script>
+/* ==================== обёртка v4: пауза с тишиной, скример, умный треск ==================== */
+const view=document.getElementById('view'),ctx=view.getContext('2d');
+const mm=document.getElementById('minimap'),mctx=mm.getContext('2d');
+const glv=document.getElementById('glv');
+const fxcv=document.getElementById('fx'),fxc=fxcv.getContext('2d');
+const img=ctx.createImageData(view.width,view.height);
+const $=id=>document.getElementById(id);
+let S=null,started=false,locked=false,drag=false,lastX=0,showMap=true,msgTimer=0,botMode=false;
+let paused=false,screaming=false,screamT=0;
+let cfg={};
+const MASTER=0.9;
+
+/* ---------- процедурное аудио ---------- */
+const AU={ctx:null,on:false};
+function auInit(){
+  if(AU.ctx)return;
+  const C=window.AudioContext||window.webkitAudioContext;
+  if(!C)return;
+  AU.ctx=new C();
+  AU.master=AU.ctx.createGain();AU.master.gain.value=MASTER;AU.master.connect(AU.ctx.destination);
+  AU.hum=AU.ctx.createOscillator();AU.hum.type='sawtooth';AU.hum.frequency.value=100;
+  AU.humF=AU.ctx.createBiquadFilter();AU.humF.type='lowpass';AU.humF.frequency.value=240;
+  AU.humG=AU.ctx.createGain();AU.humG.gain.value=0;
+  AU.hum.connect(AU.humF);AU.humF.connect(AU.humG);AU.humG.connect(AU.master);AU.hum.start();
+  AU.noise=AU.ctx.createBuffer(1,AU.ctx.sampleRate*2,AU.ctx.sampleRate);
+  const d=AU.noise.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  AU.on=true;
+}
+function auSetMute(m){if(AU.on)AU.master.gain.value=m?0:MASTER}
+function auNoise(dur,f,q,vol,pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  const src=AU.ctx.createBufferSource();src.buffer=AU.noise;
+  src.playbackRate.value=0.7+Math.random()*0.6;
+  const f1=AU.ctx.createBiquadFilter();f1.type='bandpass';f1.frequency.value=f;f1.Q.value=q;
+  const g=AU.ctx.createGain();
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  const p=AU.ctx.createStereoPanner();p.pan.value=pan||0;
+  src.connect(f1);f1.connect(g);
+  if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=700;g.connect(lf);lf.connect(p)}
+  else g.connect(p);
+  p.connect(AU.master);
+  src.start(t);src.stop(t+dur+0.05);
+}
+function auTone(f0,f1,dur,type,vol,pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  const o=AU.ctx.createOscillator();o.type=type;
+  o.frequency.setValueAtTime(f0,t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
+  const g=AU.ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+0.04);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  const p=AU.ctx.createStereoPanner();p.pan.value=pan||0;
+  o.connect(g);   // осциллятор обязан идти в гейн всегда, иначе «за стеной» = тишина
+  if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=700;g.connect(lf);lf.connect(p)}
+  else g.connect(p);
+  p.connect(AU.master);
+  o.start(t);o.stop(t+dur+0.05);
+}
+/* пространственный звук: панорама по углу, дистанция, окуляция стен */
+function spat(sx,sy){
+  if(!S)return {d:0,pan:0,muf:false,att:1};
+  const d=Math.hypot(sx-S.px,sy-S.py);
+  const pan=Math.max(-1,Math.min(1,Math.sin(Math.atan2(sy-S.py,sx-S.px)-S.ang)*1.4));
+  const vis=los(S,S.px,S.py,sx,sy);
+  return {d:d,pan:pan,muf:!vis,att:1/(1+d*0.12)};
+}
+/* треск лампы v3: короткий (0.12-0.2 с) пакет ВЧ-микротрещин, почти без низа — не «ток» */
+function auCrack(vol,pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  const n=2+((Math.random()*3)|0);
+  for(let i=0;i<n;i++){
+    const at=t+i*(0.02+Math.random()*0.035);
+    const src=AU.ctx.createBufferSource();src.buffer=AU.noise;
+    src.playbackRate.value=1.2+Math.random()*0.8;
+    const hp=AU.ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=2800+Math.random()*1500;
+    const g=AU.ctx.createGain();
+    g.gain.setValueAtTime(0.0001,at);
+    g.gain.exponentialRampToValueAtTime(vol*(0.4+Math.random()*0.6),at+0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001,at+0.012+Math.random()*0.01);
+    const p=AU.ctx.createStereoPanner();p.pan.value=pan||0;
+    src.connect(hp);hp.connect(g);
+    if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=900;g.connect(lf);lf.connect(p)}
+    else g.connect(p);
+    p.connect(AU.master);
+    src.start(at);src.stop(at+0.05);
+  }
+  const bz=AU.ctx.createOscillator();bz.type='square';bz.frequency.value=120+Math.random()*30;
+  const bzf=AU.ctx.createBiquadFilter();bzf.type='bandpass';bzf.frequency.value=700;bzf.Q.value=2;
+  const bzg=AU.ctx.createGain();
+  bzg.gain.setValueAtTime(0.0001,t);
+  bzg.gain.exponentialRampToValueAtTime(vol*0.10,t+0.005);
+  bzg.gain.exponentialRampToValueAtTime(0.0001,t+0.06);
+  const p2=AU.ctx.createStereoPanner();p2.pan.value=pan||0;
+  bz.connect(bzf);bzf.connect(bzg);bzg.connect(p2);p2.connect(AU.master);
+  bz.start(t);bz.stop(t+0.08);
+}
+/* пещерный стон: без перкуссивной атаки — медленный набег двух глиссандо и мягкий шумовой слой */
+function auCave(pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  const dur=2.6+Math.random()*0.9;
+  const f0=78+Math.random()*14,f1=f0*(0.45+Math.random()*0.12);
+  const det=2+Math.random()*3;
+  const chain=(pn,g)=>{ if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=700;
+      g.connect(lf);lf.connect(pn)} else g.connect(pn); pn.connect(AU.master); };
+  [0,det].forEach((dd,i)=>{
+    const o=AU.ctx.createOscillator();o.type='sine';
+    o.frequency.setValueAtTime(f0+dd*i,t);
+    o.frequency.exponentialRampToValueAtTime(f1+dd*i*0.4,t+dur-0.4);
+    const g=AU.ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.32,t+0.9+Math.random()*0.3);
+    g.gain.setValueAtTime(0.32,t+dur*0.55);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    const p=AU.ctx.createStereoPanner();p.pan.value=pan;
+    o.connect(g);chain(p,g);
+    o.start(t);o.stop(t+dur+0.1);
+  });
+  const src=AU.ctx.createBufferSource();src.buffer=AU.noise;src.loop=true;
+  const bp=AU.ctx.createBiquadFilter();bp.type='bandpass';
+  bp.frequency.value=180+Math.random()*120;bp.Q.value=1.0;
+  const g2=AU.ctx.createGain();
+  g2.gain.setValueAtTime(0.0001,t);
+  g2.gain.linearRampToValueAtTime(0.28,t+0.7);
+  g2.gain.linearRampToValueAtTime(0.0001,t+dur);
+  const p2=AU.ctx.createStereoPanner();p2.pan.value=pan;
+  src.connect(bp);bp.connect(g2);chain(p2,g2);
+  src.start(t);src.stop(t+dur+0.1);
+}
+/* шёпот v3: слоги со скачками формант, плозивные вспышки, провалы не до нуля */
+function auWhisper(pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime,dur=1.6;
+  const src=AU.ctx.createBufferSource();src.buffer=AU.noise;src.loop=true;
+  const bp1=AU.ctx.createBiquadFilter();bp1.type='bandpass';bp1.Q.value=4;
+  const bp2=AU.ctx.createBiquadFilter();bp2.type='bandpass';bp2.Q.value=5;
+  bp1.frequency.setValueAtTime(900,t);bp2.frequency.setValueAtTime(2300,t);
+  const g1=AU.ctx.createGain();g1.gain.value=0.0001;
+  const g2=AU.ctx.createGain();g2.gain.value=0.0001;
+  const master=AU.ctx.createGain();
+  master.gain.setValueAtTime(0.0001,t);
+  master.gain.linearRampToValueAtTime(1,t+0.12);
+  master.gain.setValueAtTime(1,t+dur-0.25);
+  master.gain.linearRampToValueAtTime(0.0001,t+dur);
+  const p=AU.ctx.createStereoPanner();p.pan.value=pan;
+  src.connect(bp1);bp1.connect(g1);g1.connect(master);
+  src.connect(bp2);bp2.connect(g2);g2.connect(master);
+  if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=700;master.connect(lf);lf.connect(p)}
+  else master.connect(p);
+  p.connect(AU.master);
+  let tt=0.1;
+  while(tt<dur-0.15){
+    const syl=0.10+Math.random()*0.10;
+    bp1.frequency.setValueAtTime(600+Math.random()*700,t+tt);
+    bp2.frequency.setValueAtTime(1700+Math.random()*1500,t+tt);
+    const a1=0.45*(0.5+Math.random()*0.5),a2=0.28*(0.5+Math.random()*0.5);
+    g1.gain.linearRampToValueAtTime(a1,t+tt+syl*0.4);
+    g1.gain.linearRampToValueAtTime(a1*0.25,t+tt+syl);
+    g2.gain.linearRampToValueAtTime(a2,t+tt+syl*0.4);
+    g2.gain.linearRampToValueAtTime(a2*0.25,t+tt+syl);
+    if(Math.random()<0.5){
+      const bs=AU.ctx.createBufferSource();bs.buffer=AU.noise;
+      const hp=AU.ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=2500;
+      const bg=AU.ctx.createGain();
+      bg.gain.setValueAtTime(0.0001,t+tt);
+      bg.gain.exponentialRampToValueAtTime(0.12,t+tt+0.004);
+      bg.gain.exponentialRampToValueAtTime(0.0001,t+tt+0.014);
+      const bp=AU.ctx.createStereoPanner();bp.pan.value=pan;
+      bs.connect(hp);hp.connect(bg);bg.connect(bp);bp.connect(AU.master);
+      bs.start(t+tt);bs.stop(t+tt+0.03);
+    }
+    tt+=syl+(Math.random()<0.3?0.05:0);
+  }
+  src.start(t);src.stop(t+dur+0.1);
+}
+/* металлический лязг: физичный удар — мягкий контакт + негармонические партиалы с биениями и разными распадами */
+function auClang(pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  auNoise(0.05,2500,1,0.10,pan);
+  const parts=[[187,2.6,0.24],[311,2.2,0.18],[467,1.8,0.13],[689,1.4,0.09],[1013,1.0,0.06],[1452,0.7,0.036]];
+  for(const [f,dec,v] of parts){
+    for(const dt of [-0.007,0.007]){
+      const o=AU.ctx.createOscillator();o.type='sine';
+      o.frequency.setValueAtTime(f*(1+dt),t);
+      o.frequency.exponentialRampToValueAtTime(f*(1+dt)*0.985,t+dec);
+      const g=AU.ctx.createGain();
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(v*0.6,t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dec);
+      const p=AU.ctx.createStereoPanner();p.pan.value=pan;
+      o.connect(g);
+      if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=700;g.connect(lf);lf.connect(p)}
+      else g.connect(p);
+      p.connect(AU.master);
+      o.start(t);o.stop(t+dec+0.1);
+    }
+  }
+}
+/* скример v3: «голос»: пила с хаотическим питчем через три форманты -> жёсткий шейпер,
+   тремоло 28 Гц; плюс старт-испуг (суб-удар + шумовой всплеск), диссонансный кластер и рык-хвост */
+function auScream(){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  // старт-испуг
+  auNoise(0.15,300,0.7,0.30,0);
+  auTone(60,24,0.5,'sine',0.26,0);
+  // голос
+  const o=AU.ctx.createOscillator();o.type='sawtooth';
+  o.frequency.setValueAtTime(320,t);
+  let tt=0,f=320;
+  while(tt<1.1){
+    tt+=0.05+Math.random()*0.05;
+    f=Math.min(900,Math.max(140,f*(0.85+Math.random()*0.4)));
+    o.frequency.linearRampToValueAtTime(f*(1-tt*0.35),t+tt);
+  }
+  const forms=[[700,5,0.5],[1200,6,0.35],[2600,7,0.2]].map(([fr,q,gv])=>{
+    const bp=AU.ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=fr;bp.Q.value=q;
+    const g=AU.ctx.createGain();g.gain.value=gv;
+    o.connect(bp);bp.connect(g);
+    return g;
+  });
+  const ws=AU.ctx.createWaveShaper();
+  const curve=new Float32Array(256);
+  for(let i=0;i<256;i++){const x=i/128-1;curve[i]=Math.tanh(x*6)}
+  ws.curve=curve;
+  const gV=AU.ctx.createGain();
+  gV.gain.setValueAtTime(0.0001,t);
+  gV.gain.exponentialRampToValueAtTime(0.30,t+0.02);
+  gV.gain.setValueAtTime(0.30,t+0.9);
+  gV.gain.exponentialRampToValueAtTime(0.0001,t+1.3);
+  const trem=AU.ctx.createOscillator();trem.type='sine';trem.frequency.value=28;
+  const tremG=AU.ctx.createGain();tremG.gain.value=0.16;
+  trem.connect(tremG);tremG.connect(gV.gain);
+  forms.forEach(g=>g.connect(ws));
+  ws.connect(gV);gV.connect(AU.master);
+  o.start(t);trem.start(t);o.stop(t+1.35);trem.stop(t+1.35);
+  // высокий визг поверх
+  const sh=AU.ctx.createOscillator();sh.type='sawtooth';
+  sh.frequency.setValueAtTime(1800,t);
+  sh.frequency.exponentialRampToValueAtTime(420,t+1.0);
+  const lfo=AU.ctx.createOscillator();lfo.type='sine';lfo.frequency.value=31;
+  const lfoG=AU.ctx.createGain();lfoG.gain.value=140;
+  lfo.connect(lfoG);lfoG.connect(sh.frequency);
+  const ws2=AU.ctx.createWaveShaper();ws2.curve=curve;
+  const gS=AU.ctx.createGain();
+  gS.gain.setValueAtTime(0.0001,t);
+  gS.gain.exponentialRampToValueAtTime(0.10,t+0.02);
+  gS.gain.exponentialRampToValueAtTime(0.0001,t+1.1);
+  const pS=AU.ctx.createStereoPanner();pS.pan.value=-0.4;
+  sh.connect(ws2);ws2.connect(gS);gS.connect(pS);pS.connect(AU.master);
+  sh.start(t);lfo.start(t);sh.stop(t+1.15);lfo.stop(t+1.15);
+  // диссонансный кластер-стаб на старте
+  [220,233,466].forEach(fr=>{
+    const c=AU.ctx.createOscillator();c.type='sawtooth';c.frequency.value=fr;
+    const cg=AU.ctx.createGain();
+    cg.gain.setValueAtTime(0.0001,t);
+    cg.gain.exponentialRampToValueAtTime(0.08,t+0.015);
+    cg.gain.exponentialRampToValueAtTime(0.0001,t+0.45);
+    c.connect(cg);cg.connect(AU.master);
+    c.start(t);c.stop(t+0.5);
+  });
+  // рык-хвост
+  const gr=AU.ctx.createOscillator();gr.type='sine';
+  gr.frequency.setValueAtTime(90,t+0.9);
+  gr.frequency.exponentialRampToValueAtTime(45,t+2.0);
+  const gg=AU.ctx.createGain();
+  gg.gain.setValueAtTime(0.0001,t+0.9);
+  gg.gain.linearRampToValueAtTime(0.16,t+1.05);
+  gg.gain.exponentialRampToValueAtTime(0.0001,t+2.1);
+  const gw=AU.ctx.createOscillator();gw.type='sine';gw.frequency.value=17;
+  const gwG=AU.ctx.createGain();gwG.gain.value=0.06;
+  gw.connect(gwG);gwG.connect(gg.gain);
+  gr.connect(gg);gg.connect(AU.master);
+  gr.start(t+0.9);gr.stop(t+2.2);gw.start(t+0.9);gw.stop(t+2.2);
+}
+let auTimers={cave:4,crk:0};
+let prevI=null;
+function auFrame(s,dt){
+  if(!AU.on||!started||!S||paused)return;
+  let near=1e9;
+  for(const lp of s.lamps){
+    if(lp.I<0.3)continue;
+    const d=Math.hypot(lp.x+0.5-s.px,lp.y+0.5-s.py);
+    near=Math.min(near,d);
+  }
+  const humV=near<1e8?0.09/(1+near*near*0.10):0;
+  AU.humG.gain.value+=(humV-AU.humG.gain.value)*Math.min(1,dt*8);
+  // треск: только если лампа рядом реально меняет состояние
+  if(!prevI||prevI.length!==s.lamps.length)prevI=s.lamps.map(l=>l.I);
+  auTimers.crk-=dt;
+  if(auTimers.crk<=0){
+    for(let i=0;i<s.lamps.length;i++){
+      const lp=s.lamps[i];
+      const dI=Math.abs(lp.I-prevI[i]);
+      prevI[i]=lp.I;
+      if(dI>0.45){
+        const d=Math.hypot(lp.x+0.5-s.px,lp.y+0.5-s.py);
+        if(d<6){
+          const pan=Math.max(-1,Math.min(1,Math.sin(Math.atan2(lp.y+0.5-s.py,lp.x+0.5-s.px)-s.ang)*1.4));
+          const spL=spat(lp.x+0.5,lp.y+0.5);
+          auCrack(0.6*spL.att,spL.pan,spL.muf);
+          auTimers.crk=0.07;
+        }
+      }
+    }
+  }else{
+    for(let i=0;i<s.lamps.length;i++)prevI[i]=s.lamps[i].I;
+  }
+  if(!s.monster)return;
+  const dM=Math.hypot(s.px-s.mx,s.py-s.my);
+  const panM=Math.max(-1,Math.min(1,Math.sin(Math.atan2(s.my-s.py,s.mx-s.px)-s.ang)*1.4));
+  auTimers.cave-=dt;
+  if(dM<7&&auTimers.cave<=0){
+    auTimers.cave=4+Math.random()*6;
+    const r=Math.random();
+    const spM=spat(s.mx,s.my);
+    if(r<0.5)auCave(spM.pan,spM.muf);else if(r<0.8)auWhisper(spM.pan,spM.muf);else auClang(spM.pan,spM.muf);
+  }
+}
+/* «она вас увидела»: плавный dread-swell с серединным слоем, пространственный */
+function auSeen(pan,muf){
+  if(!AU.on)return;
+  const t=AU.ctx.currentTime;
+  const chain=(pn,g)=>{ if(muf){const lf=AU.ctx.createBiquadFilter();lf.type='lowpass';lf.frequency.value=700;
+      g.connect(lf);lf.connect(pn)} else g.connect(pn); pn.connect(AU.master); };
+  [[46,0.10],[49,0.10],[65,0.08],[92,0.06],[98,0.06],[131,0.05]].forEach(([f,gv])=>{
+    const o=AU.ctx.createOscillator();o.type='sine';o.frequency.value=f;
+    const g=AU.ctx.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(gv,t+0.5);
+    g.gain.setValueAtTime(gv,t+1.6);
+    g.gain.linearRampToValueAtTime(0.0001,t+2.8);
+    const p=AU.ctx.createStereoPanner();p.pan.value=pan;
+    o.connect(g);chain(p,g);
+    o.start(t);o.stop(t+2.9);
+  });
+  const sh=AU.ctx.createOscillator();sh.type='sine';
+  sh.frequency.setValueAtTime(660,t);
+  sh.frequency.linearRampToValueAtTime(990,t+2.2);
+  const trem=AU.ctx.createOscillator();trem.type='sine';trem.frequency.value=6;
+  const tremG=AU.ctx.createGain();tremG.gain.value=0.035;
+  const sg=AU.ctx.createGain();sg.gain.setValueAtTime(0.0001,t);
+  sg.gain.linearRampToValueAtTime(0.07,t+1.4);
+  sg.gain.linearRampToValueAtTime(0.0001,t+2.6);
+  trem.connect(tremG);tremG.connect(sg.gain);
+  const p2=AU.ctx.createStereoPanner();p2.pan.value=pan;
+  sh.connect(sg);chain(p2,sg);
+  sh.start(t);trem.start(t);sh.stop(t+2.7);trem.stop(t+2.7);
+  const src=AU.ctx.createBufferSource();src.buffer=AU.noise;src.loop=true;
+  const bp=AU.ctx.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.4;
+  bp.frequency.setValueAtTime(400,t);bp.frequency.linearRampToValueAtTime(1200,t+2.0);
+  const ng=AU.ctx.createGain();
+  ng.gain.setValueAtTime(0.0001,t);
+  ng.gain.linearRampToValueAtTime(0.40,t+1.5);
+  ng.gain.linearRampToValueAtTime(0.0001,t+2.6);
+  const p3=AU.ctx.createStereoPanner();p3.pan.value=pan;
+  src.connect(bp);bp.connect(ng);chain(p3,ng);
+  src.start(t);src.stop(t+2.7);
+}
+function posOf(where){
+  if(!S)return {d:0,pan:0,muf:false,att:1};
+  const x=where==='door'?S.door.x+0.5:S.mx;
+  const y=where==='door'?S.door.y+0.5:S.my;
+  return spat(x,y);
+}
+/* событийные звуки */
+function auEvent(e){
+  if(!AU.on)return;
+  if(e==='pickup_key'){auTone(880,1320,0.5,'sine',0.2,0);auTone(1760,1760,0.35,'sine',0.08,0)}
+  if(e==='door_locked'){const sp=posOf('door');auTone(120,80,0.3,'square',0.14*sp.att,sp.pan,sp.muf)}
+  if(e==='door_open'){const sp=posOf('door');auTone(220,140,1.2,'sawtooth',0.1*sp.att,sp.pan,sp.muf);auNoise(0.9,500,1.5,0.5*sp.att,sp.pan,sp.muf)}
+  if(e==='monster_seen'){const sp=posOf('shadow');auSeen(sp.pan,sp.muf)}
+  if(e==='shadow_teleport'){const sp=posOf('shadow');auNoise(0.7,140,0.8,1.2*sp.att,sp.pan,sp.muf);auTone(300,60,0.8,'sine',0.16*sp.att,sp.pan,sp.muf)}
+  if(e==='win'){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>auTone(f,f,0.7,'sine',0.16,0),i*140))}
+}
+/* лаборатория звука: полный инвентарь процедур */
+const SOUNDS=[
+  ['Гул ламп (2.5 с)',()=>{if(!AU.on)return;const t=AU.ctx.currentTime,g=AU.humG.gain;
+    g.cancelScheduledValues(t);g.setValueAtTime(g.value,t);
+    g.linearRampToValueAtTime(0.09,t+0.3);g.setValueAtTime(0.09,t+2.0);g.linearRampToValueAtTime(0.0001,t+2.6)}],
+  ['Треск лампы',()=>auCrack(0.6,0)],
+  ['Пещерный стон',()=>auCave(0)],
+  ['Шёпот',()=>auWhisper(0)],
+  ['Металлический лязг',()=>auClang(0)],
+  ['Она вас увидела',()=>auSeen(0)],
+  ['Портал тени',()=>auEvent('shadow_teleport')],
+  ['Подбор ключа',()=>auEvent('pickup_key')],
+  ['Дверь заперта',()=>auEvent('door_locked')],
+  ['Дверь открыта',()=>auEvent('door_open')],
+  ['Победа',()=>auEvent('win')],
+  ['СКРИМЕР',()=>auScream()]];
+function buildSndLab(){
+  const box=$('sndBtns');box.innerHTML='';
+  for(const [lab,fn] of SOUNDS){
+    const b=document.createElement('button');b.textContent=lab;
+    b.onclick=()=>{auInit();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();fn()};
+    box.appendChild(b);
+  }
+}
+buildSndLab();
+$('sndBtn').onclick=()=>{auInit();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();show('sndlab',true)};
+$('sndClose').onclick=()=>show('sndlab',false);
+
+/* ---------- UI ---------- */
+function setMsg(t,col){
+  const m=$('msg');m.textContent=t;m.style.color=col||'#ffd43b';m.style.opacity=1;
+  clearTimeout(msgTimer);msgTimer=setTimeout(()=>m.style.opacity=0,2100);
+}
+function show(el,on){$(el).classList.toggle('hidden',!on)}
+function readCfg(){
+  const sv=$('cfgSeed').value.trim();
+  return {seed:sv===''?undefined:(parseInt(sv,10)|0),W:parseInt($('cfgSize').value,10),
+    monster:$('cfgMon').checked,monsterSpeed:parseFloat($('cfgMonSp').value),
+    density:parseFloat($('cfgDens').value),
+    radar:$('cfgRadar').checked,teleport:$('cfgTp').checked,
+    sens:parseFloat($('cfgSens').value),preset:$('cfgPreset').value};
+}
+function applyPreset(name){
+  const p=PRESETS[name];if(!p)return;
+  $('cfgSize').value=String(p.W);
+  $('cfgMon').checked=p.monster;
+  $('cfgMonSp').value=p.monsterSpeed;$('cfgMonSpV').textContent=p.monsterSpeed;
+  $('cfgDens').value=p.density;$('cfgDensV').textContent=p.density;
+  $('cfgRadar').checked=p.radar;$('cfgTp').checked=p.teleport;
+}
+$('cfgPreset').onchange=e=>{if(e.target.value!=='custom')applyPreset(e.target.value)};
+const bind=(id,vid)=>{const el=$(id);const f=()=>{$(vid).textContent=el.value};el.addEventListener('input',f);f()};
+bind('cfgMonSp','cfgMonSpV');bind('cfgDens','cfgDensV');bind('cfgSens','cfgSensV');
+['cfgMonSp','cfgDens','cfgSens','cfgSize','cfgMon','cfgRadar','cfgTp'].forEach(id=>{
+  $(id).addEventListener('input',()=>{
+    const pn=$('cfgPreset').value;
+    if(pn!=='custom'&&PRESETS[pn]){
+      const p=PRESETS[pn],cur=readCfg();
+      const same=cur.W===p.W&&cur.monster===p.monster&&cur.monsterSpeed===p.monsterSpeed&&
+        cur.density===p.density&&cur.radar===p.radar&&cur.teleport===p.teleport;
+      if(!same)$('cfgPreset').value='custom';
+    }
+  });
+});
+function startGame(c){
+  cfg=Object.assign({},c);
+  const seed=c.seed!==undefined&&c.seed!==null?c.seed:(Math.random()*1e9)|0;
+  S=Object.assign(newState(seed,{W:c.W,H:c.W,monster:c.monster,monsterSpeed:c.monsterSpeed,
+    density:c.density,radar:c.radar,teleport:c.teleport}),{sens:c.sens});
+  started=true;botMode=false;paused=false;screaming=false;screamT=0;prevI=null;
+  devOn=false;slowmo=false;show('devPanel',false);
+  {const base={dvNoclip:'noclip',dvGhost:'ghost',dvStam:'∞ стамина',dvSlow:'slow-mo',dvDbg:'инфо'};
+   for(const id in base)$(id).textContent=base[id]}
+  view.style.transform='';
+  show('menu',false);show('end',false);show('pause',false);
+  show('hud',true);show('minimap',true);show('help',true);show('btns',true);
+  $('seedLbl').textContent=S.seed;$('sizeLbl').textContent=S.W+'×'+S.H;
+  $('preLbl').textContent=(c.preset&&c.preset!=='custom')?c.preset:'свой';
+  $('botBtn').textContent='Автопилот';
+  const q=new URLSearchParams(location.search);
+  const pref=q.get('cpu')==='1'?'cpu':(q.get('gpu')==='1'?'gpu':$('cfgRender').value);
+  let mode='cpu';
+  const sig=seed+'_'+c.W+'x'+c.W;
+  if(pref!=='cpu'){
+    if(!(GPU.ready&&GPU.sig===sig)) GPU.ok=GPU.init(glv,S);
+    if(GPU.ok){
+      const rstr=(GPU.glString()||'').toLowerCase();
+      const soft=/swiftshader|llvmpipe|software|basic render/i.test(rstr);
+      if(!soft||pref==='gpu') mode='gpu';
+    }
+  }
+  GPU.mode=mode;
+  glv.style.display=mode==='gpu'?'block':'none';
+  view.style.display=mode==='gpu'?'none':'block';
+  if(mode==='gpu')GPU.resize(832,520);
+  $('renLbl').textContent=mode==='gpu'?'GPU':'CPU';
+  S.pitch=0;
+  auInit();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();
+  auSetMute(false);
+  setMsg(c.monster?'Держитесь света. Ключ, потом дверь.':'Практика: тени нет. Выучите маршруты.','#63e6be');
+}
+function setPaused(p){
+  if(!started||!S||S.won||S.caught)return;
+  paused=p;
+  show('pause',p);
+  auSetMute(p);
+  if(p&&document.pointerLockElement)document.exitPointerLock();
+}
+function toMenu(){
+  started=false;paused=false;locked=false;screaming=false;
+  devOn=false;slowmo=false;show('devPanel',false);
+  if(document.pointerLockElement)document.exitPointerLock();
+  auSetMute(true);
+  view.style.transform='';
+  show('menu',true);show('hud',false);show('minimap',false);show('help',false);show('btns',false);
+  show('end',false);show('pause',false);
+  if(GPU.mode==='gpu'&&GPU.ready)GPU.clearBlack();
+  ctx.fillStyle='#000';ctx.fillRect(0,0,view.width,view.height);
+  mctx.clearRect(0,0,mm.width,mm.height);
+  fxc.clearRect(0,0,fxcv.width,fxcv.height);
+  fxcv.style.transform='';
+}
+function endScreen(won){
+  show('end',true);
+  $('endTitle').textContent=won?'ДВЕРЬ ОТКРЫТА. ВЫ ВЫШЛИ.':'ТЕНЬ ДОГНАЛА ВАС';
+  $('endTitle').className=won?'t':'w';
+  $('endStats').textContent='Сид '+S.seed+' · '+S.W+'×'+S.H+' · время '+S.time.toFixed(1)+
+    ' с · шагов '+S.steps.toFixed(0)+(S.monster?' · тень: '+(won?'обманута':'быстрее'):'');
+  if(document.pointerLockElement)document.exitPointerLock();
+}
+/* скример: анимированное лицо на весь экран + тряска + вспышки */
+function sizeFx(){fxcv.width=innerWidth;fxcv.height=innerHeight}
+addEventListener('resize',sizeFx);
+function drawScreamer(t){
+  const W=fxcv.width,H=fxcv.height;
+  const k=Math.min(1,t/1.15);
+  const jx=(Math.random()*2-1)*14*(1-k*0.5),jy=(Math.random()*2-1)*10*(1-k*0.5);
+  fxcv.style.transform='translate('+jx.toFixed(1)+'px,'+jy.toFixed(1)+'px)';
+  fxc.save();
+  const sc=0.25+k*2.6;
+  const cx=W/2+(Math.random()*2-1)*6,cy=H/2+(Math.random()*2-1)*5;
+  fxc.fillStyle='rgba(0,0,0,'+(0.55+0.4*k).toFixed(2)+')';
+  fxc.fillRect(0,0,W,H);
+  fxc.fillStyle='#0a0710';
+  fxc.beginPath();fxc.ellipse(cx,cy+H*0.10*sc,W*0.22*sc,H*0.34*sc,0,0,7);fxc.fill();
+  fxc.beginPath();fxc.ellipse(cx,cy-H*0.16*sc,W*0.13*sc,H*0.15*sc,0,0,7);fxc.fill();
+  for(const sgn of [-1,1]){
+    const ex=cx+sgn*W*0.055*sc,ey=cy-H*0.16*sc;
+    const r=W*0.030*sc*(1+0.15*Math.sin(t*40+sgn));
+    const g=fxc.createRadialGradient(ex,ey,0,ex,ey,r*3);
+    g.addColorStop(0,'rgba(255,80,60,1)');g.addColorStop(0.35,'rgba(255,30,20,0.9)');
+    g.addColorStop(1,'rgba(120,0,0,0)');
+    fxc.fillStyle=g;fxc.beginPath();fxc.arc(ex,ey,r*3,0,7);fxc.fill();
+    fxc.fillStyle='#fff';fxc.beginPath();fxc.arc(ex-r*0.25,ey-r*0.3,r*0.28,0,7);fxc.fill();
+  }
+  fxc.fillStyle='#000';
+  fxc.beginPath();fxc.ellipse(cx,cy-H*0.05*sc,W*0.05*sc*(1+k),H*0.09*sc*(1+k*1.5),0,0,7);fxc.fill();
+  if(((t*14)|0)%3===0){fxc.fillStyle='rgba(255,40,30,0.16)';fxc.fillRect(0,0,W,H)}
+  if(((t*9)|0)%4===0){fxc.fillStyle='rgba(255,255,255,0.10)';fxc.fillRect(0,0,W,H)}
+  const vg=fxc.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(90,0,0,0.8)');
+  fxc.fillStyle=vg;fxc.fillRect(0,0,W,H);
+  fxc.restore();
+}
+view.addEventListener('click',()=>{
+  if(!started||!S||S.won||S.caught||paused)return;
+  requestLook(true);
+});
+glv.addEventListener('click',()=>{
+  if(!started||!S||S.won||S.caught||paused)return;
+  requestLook(true);
+});
+/* захват мыши: цель — ВИДИМЫЙ канвас (в GPU-режиме view скрыт, лочить его нельзя),
+   с ретраем на случай кулдауна Chrome после Esc и подсказкой при отказе */
+let lockEl=null,lockRetryAt=0,lockHinted=false,autoTries=0;
+function lockTarget(){return (GPU.mode==='gpu')?glv:view}
+function requestLook(byUser){
+  if(!started||paused||!S||S.won||S.caught)return;
+  const el=lockTarget();
+  lockEl=el;
+  const again=()=>{if(byUser||autoTries<3){autoTries++;lockRetryAt=performance.now()+1300}};
+  try{
+    const p=el.requestPointerLock&&el.requestPointerLock();
+    if(p&&p.catch)p.catch(again);
+  }catch(e){again()}
+}
+document.addEventListener('pointerlockchange',()=>{
+  const wasLocked=locked;
+  locked=!!document.pointerLockElement&&document.pointerLockElement===lockEl;
+  if(locked){lockHinted=false;autoTries=0;lockRetryAt=0}
+  if(!started||!S||S.won||S.caught)return;
+  if(wasLocked&&!locked)setPaused(true);      // Esc в режиме захвата
+});
+document.addEventListener('pointerlockerror',()=>{
+  locked=false;
+  lockRetryAt=performance.now()+1300;
+  if(started&&!paused&&!lockHinted){lockHinted=true;
+    setMsg('Кликните по игре, чтобы вернуть мышь','#ffa94d')}
+});
+document.addEventListener('mousemove',e=>{
+  if(!started||!S||paused)return;
+  if(locked){S.ang+=e.movementX*0.0016*(S.sens||1.4);
+    S.pitch=Math.max(-1.1,Math.min(1.1,(S.pitch||0)-e.movementY*0.0016*(S.sens||1.4)));}
+  else if(drag)S.ang+=(e.clientX-lastX)*0.004*(S.sens||1.4),lastX=e.clientX;
+});
+view.addEventListener('pointerdown',e=>{if(!locked&&!paused){drag=true;lastX=e.clientX}});
+glv.addEventListener('pointerdown',e=>{if(!locked&&!paused){drag=true;lastX=e.clientX}});
+addEventListener('pointerup',()=>drag=false);
+addEventListener('blur',()=>{drag=false;for(const k in keys)keys[k]=0});
+const keys={};let interactPulse=0;
+addEventListener('keydown',e=>{
+  if(!started)return;
+  if(e.code==='Escape'&&!locked&&!S.won&&!S.caught){setPaused(!paused);return}
+  if(paused)return;
+  keys[e.code]=1;
+  if(e.code==='KeyE'||e.code==='Space')interactPulse=1;
+  if(e.code==='KeyM')showMap=!showMap;
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();
+});
+addEventListener('keyup',e=>keys[e.code]=0);
+$('startBtn').onclick=()=>{startGame(readCfg());requestLook()};
+$('resumeBtn').onclick=()=>{setPaused(false);autoTries=0;requestLook(true)};
+$('pauseMenuBtn').onclick=toMenu;$('endMenuBtn').onclick=toMenu;$('menuBtn').onclick=toMenu;
+$('againBtn').onclick=()=>startGame(Object.assign({},cfg,{seed:S.seed}));
+$('nextBtn').onclick=()=>startGame(Object.assign({},cfg,{seed:undefined}));
+$('botBtn').onclick=e=>{botMode=!botMode;if(botMode&&S)enableBot(S);
+  e.target.textContent=botMode?'Автопилот: ВКЛ':'Автопилот'};
+
+/* ---------- dev-режим ---------- */
+let devOn=false,slowmo=false,fpsS=60;
+function devMark(btn,on){btn.textContent=btn.textContent.replace(/ ·ВКЛ$/,'')+(on?' ·ВКЛ':'')}
+addEventListener('keydown',e=>{
+  if(e.code==='F3'&&started){devOn=!devOn;show('devPanel',devOn);e.preventDefault()}
+});
+$('dvNoclip').onclick=e=>{S.dev.noclip=!S.dev.noclip;devMark(e.target,S.dev.noclip)};
+$('dvGhost').onclick=e=>{S.dev.ghost=!S.dev.ghost;devMark(e.target,S.dev.ghost)};
+$('dvStam').onclick=e=>{S.dev.infStam=!S.dev.infStam;devMark(e.target,S.dev.infStam)};
+$('dvSlow').onclick=e=>{slowmo=!slowmo;devMark(e.target,slowmo)};
+$('dvDbg').onclick=e=>{S.dev.debug=!S.dev.debug;devMark(e.target,S.dev.debug);
+  if(!S.dev.debug)$('dbg').textContent=''};
+$('dvKey').onclick=()=>{S.px=S.key.x+0.5;S.py=S.key.y+0.5};
+$('dvDoor').onclick=()=>{
+  const n=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:S.door.x+dx,y:S.door.y+dy}))
+    .find(p=>p.x>=0&&p.y>=0&&p.x<S.W&&p.y<S.H&&S.grid[p.y*S.W+p.x]===0);
+  if(n){S.px=n.x+0.5;S.py=n.y+0.5}};
+$('dvSummon').onclick=()=>{
+  if(!S.monster)return;
+  let best=null,bd=1e9,fb=null,fd=1e9;
+  for(const f of S.floors){
+    const x=(f%S.W)+0.5,y=((f/S.W)|0)+0.5,d=Math.hypot(x-S.px,y-S.py);
+    if(d>=2.5&&d<=12&&los(S,S.px,S.py,x,y)&&d<bd){bd=d;best={x,y}}
+    if(d>=6&&d<fd){fd=d;fb={x,y}}
+  }
+  const t=best||fb;
+  if(t){S.mx=t.x;S.my=t.y;S.mPath=null;S.mMode='wander';setMsg('Тень призвана. Она уже движется.','#ff6b6b')}
+  else setMsg('Некуда призвать Тень','#ffa94d')};
+$('dvScream').onclick=()=>{if(!screaming){screaming=true;screamT=0;sizeFx();auScream()}};
+
+function drawMinimap(){
+  if(!showMap){mm.style.visibility='hidden';return}
+  mm.style.visibility='visible';
+  mctx.clearRect(0,0,150,150);
+  const c=150/Math.max(S.W,S.H);
+  for(let y=0;y<S.H;y++)for(let x=0;x<S.W;x++){
+    const v=S.grid[y*S.W+x];
+    mctx.fillStyle=v===1?'#232b3a':(S.explored[y*S.W+x]?'#39415a':'#151a24');
+    mctx.fillRect(x*c,y*c,c+0.5,c+0.5);
+  }
+  for(const lp of S.lamps)if(lp.I>0.3){
+    mctx.fillStyle='rgba(255,220,150,'+(0.35+0.5*lp.I).toFixed(2)+')';
+    mctx.fillRect((lp.x+0.3)*c,(lp.y+0.3)*c,c*0.4,c*0.4);
+  }
+  mctx.fillStyle='rgba(45,212,168,0.85)';
+  mctx.fillRect((S.start.x+0.15)*c,(S.start.y+0.15)*c,c*0.7,c*0.7);
+  // выход: всегда зелёный (заперт — тёмно-зелёный контур, открыт — яркий пульс), не жёлтый как ключ
+  if(!S.doorOpen){
+    mctx.fillStyle='#2b8a3e';
+    mctx.fillRect((S.door.x+0.08)*c,(S.door.y+0.08)*c,c*0.84,c*0.84);
+    mctx.strokeStyle='#69db7c';mctx.lineWidth=1;
+    mctx.strokeRect((S.door.x+0.08)*c,(S.door.y+0.08)*c,c*0.84,c*0.84);
+  }else{
+    const pl=0.6+0.4*Math.sin(S.time*4);
+    mctx.fillStyle='rgba(81,207,102,'+(0.55+0.4*pl).toFixed(2)+')';
+    mctx.beginPath();mctx.arc((S.door.x+0.5)*c,(S.door.y+0.5)*c,c*(0.42+0.12*pl),0,7);mctx.fill();
+  }
+  if(!S.hasKey){mctx.fillStyle='#ffd43b';mctx.beginPath();
+    mctx.arc((S.key.x+0.5)*c,(S.key.y+0.5)*c,c*0.34,0,7);mctx.fill()}
+  const seenNow=S.monster&&los(S,S.px,S.py,S.mx,S.my);
+  if(S.monster&&(S.radar||S.mMode==='chase'||seenNow)){
+    mctx.fillStyle='#ff6b6b';mctx.beginPath();mctx.arc(S.mx*c,S.my*c,c*0.36,0,7);mctx.fill()}
+  mctx.fillStyle='#63e6be';mctx.beginPath();mctx.arc(S.px*c,S.py*c,c*0.36,0,7);mctx.fill();
+  mctx.strokeStyle='#63e6be';mctx.lineWidth=1.6;mctx.beginPath();
+  mctx.moveTo(S.px*c,S.py*c);
+  mctx.lineTo((S.px+Math.cos(S.ang)*1.4)*c,(S.py+Math.sin(S.ang)*1.4)*c);mctx.stroke();
+}
+
+/* отладочные хуки для headless-инструментов */
+window.__DBG=()=>S?{doorOpen:S.doorOpen,won:S.won,caught:S.caught,px:S.px,py:S.py,ang:S.ang,
+  door:{x:S.door.x,y:S.door.y},key:{x:S.key.x,y:S.key.y},start:{x:S.start.x,y:S.start.y},mx:S.monster?S.mx:0,my:S.monster?S.my:0,hasKey:S.hasKey,monMode:S.monster?S.mMode:'off'}:null;
+window.__SETANG=a=>{if(S)S.ang=a};
+
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dtRaw=Math.min(0.05,(now-last)/1000);last=now;
+  fpsS=fpsS*0.92+(1/Math.max(dtRaw,1e-4))*0.08;
+  if(!started||!S)return;
+  const dt=dtRaw*(slowmo&&devOn?0.3:1);
+  if(screaming){
+    screamT+=dtRaw;
+    if(GPU.mode==='gpu'&&GPU.ready){GPU.frame(S,dtRaw)}       // фон скримера = живой кадр текущего рендерера
+    else{const buf=render(S,view.width,view.height);img.data.set(buf);ctx.putImageData(img,0,0)}
+    drawScreamer(screamT);
+    if(screamT>1.5){screaming=false;fxcv.style.transform='';fxc.clearRect(0,0,fxcv.width,fxcv.height);endScreen(false)}
+    return;
+  }
+  if(paused)return;
+  if(!locked&&lockRetryAt&&now>=lockRetryAt){lockRetryAt=0;requestLook(false)}
+  const inp=botMode?botInput(S):{
+    fwd:keys.KeyW||keys.ArrowUp,back:keys.KeyS||keys.ArrowDown,
+    left:keys.KeyA,right:keys.KeyD,
+    turnL:keys.ArrowLeft?1:0,turnR:keys.ArrowRight?1:0,
+    interact:interactPulse,run:keys.ShiftLeft||keys.ShiftRight};
+  interactPulse=0;
+  const ev=update(S,inp,dt);
+  if(ev.length){window.__EV=(window.__EV||[]).concat(ev).slice(-40)}
+  for(const e of ev){
+    if(e==='pickup_key')setMsg('Ключ у вас! Теперь — к двери.','#ffd43b');
+    if(e==='door_locked')setMsg('Заперто. Ключ где-то в лабиринте.','#ff6b6b');
+    if(e==='door_open')setMsg('Дверь открыта! Вперёд.','#63e6be');
+    if(e==='monster_seen')setMsg('Тень видит вас!','#ff6b6b');
+    if(e==='exhausted')setMsg('Выдохлись. Шаг — и стамина вернётся.','#ffa94d');
+    if(e==='shadow_teleport')setMsg('Темнота за спиной шевельнулась…','#ffa94d');
+    if(e==='win')endScreen(true);
+    if(e==='caught'){screaming=true;screamT=0;sizeFx();auScream()}
+    if(e!=='caught')auEvent(e);
+  }
+  auFrame(S,dt);
+  if(GPU.mode==='gpu'&&GPU.ready){ GPU.frame(S,dt); }
+  else { const buf=render(S,view.width,view.height); img.data.set(buf);ctx.putImageData(img,0,0); }
+  $('timeLbl').textContent=S.time.toFixed(1);
+  $('stepLbl').textContent=S.steps.toFixed(0);
+  const ks=$('keyState');
+  ks.textContent=S.hasKey?(S.doorOpen?'Ключ: использован':'Ключ: у вас'):'Ключ: не найден';
+  ks.className=S.hasKey?'has':'';
+  const ms=$('monState');
+  if(!S.monster){ms.textContent='Тень: отключена (практика)';ms.className=''}
+  else if(S.mMode==='chase'){ms.textContent='Тень: ОХОТИТСЯ';ms.className='hunt'}
+  else if(S.mMode==='investigate'){ms.textContent='Тень: ищет';ms.className='seek'}
+  else{ms.textContent='Тень: блуждает';ms.className=''}
+  const sb=$('stamBar');
+  sb.style.width=(S.stam*100).toFixed(0)+'%';
+  sb.style.background='hsl('+Math.round(130*Math.max(0,Math.min(1,S.stam)))+',75%,'+Math.round(42+14*S.stam)+'%)';
+  if(devOn&&S.dev.debug){
+    $('dbg').textContent='fps '+fpsS.toFixed(0)+' | pos '+S.px.toFixed(1)+','+S.py.toFixed(1)+
+      ' | тень '+S.mx.toFixed(1)+','+S.my.toFixed(1)+' '+S.mMode+
+      ' | los '+(S.monster&&los(S,S.px,S.py,S.mx,S.my)?1:0)+
+      ' | stam '+S.stam.toFixed(2)+(S.exhausted?' EXH':'')+
+      ' | tp '+Math.max(0,S.tpCd).toFixed(1)+'s | строб ламп '+S.lamps.filter(l=>l.fl>0).length+
+      ' | тёмных клеток '+S.darkCells.length;
+  }
+  drawMinimap();
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
