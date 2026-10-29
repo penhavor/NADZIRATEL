@@ -1,433 +1,904 @@
 <!doctype html>
 <html lang="ru">
-<head>
-<meta charset="utf-8">
-<title>NADZIRATEL · v1.0.0 (BUILD 120)</title>
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-<div id="loader">
-<div class="ldbox">
-<div class="ldtitle">NADZI<span>RATEL</span></div>
-<div class="ldbar"><div id="ldFill"></div></div>
-<div class="ldrow"><span id="ldPct">0%</span><span id="ldLbl">инициализация…</span></div>
-<div id="ldGo" class="ldgo hidden">Нажмите <b>ENTER</b> — войти в главное меню</div>
-</div>
-</div>
-<canvas id="fx" style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50"></canvas>
-<div id="wrap">
-<canvas id="view" width="832" height="520"></canvas>
-<div id="hud" class="hidden">
-<div>Сложность: <b id="preLbl">—</b></div>
-<div>Время: <b id="timeLbl">0 с</b> · Пройдено: <b id="stepLbl">0 м</b> · FPS: <b id="fpsLbl" class="fg">—</b></div>
-<div style="margin-top:5px;font-size:11px;color:#8b95a8;margin-bottom:2px">Стамина: <b id="stPct" style="color:#63e6be">100%</b></div>
-<div style="width:150px;height:7px;background:#232b3a;border-radius:4px;overflow:hidden">
-<div id="stamBar" style="height:100%;width:100%;background:#63e6be"></div>
-</div>
-<div id="flWrap" class="hidden" style="margin-top:5px">
-<div style="font-size:11px;color:#8b95a8;margin-bottom:2px">Фонарь: <b id="flPct" style="color:#ffd43b">100%</b></div>
-<div style="width:150px;height:7px;background:#232b3a;border-radius:4px;overflow:hidden">
-<div id="flBar" style="height:100%;width:100%;background:#ffd43b"></div>
-</div></div>
-</div>
-<div id="invBar" class="hidden"></div>
-<div id="devPanel" class="hidden" style="position:absolute;top:14px;left:50%;transform:translateX(-50%);
-background:rgba(22,12,34,.88);border:1px solid #7048e8;border-radius:10px;padding:8px 12px;font-size:12px;color:#d0bfff;max-width:560px">
-<b>DEV-РЕЖИМ · F3 — скрыть панель</b>
-<div class="row" style="margin-top:6px">
-<button id="dvNoclip">noclip</button><button id="dvInvis">invisible</button>
-<button id="dvStam">∞ стамина</button><button id="dvMan">манекен</button><button id="dvTp">3-е лицо</button><button id="dvKey">→ ключ</button>
-<button id="dvDoor">→ дверь</button><button id="dvSummon">призвать Надзирателя</button>
-<button id="dvScream">скример</button><button id="botBtn">Автопилот</button>
-</div>
-</div>
-<canvas id="minimap" width="150" height="150" class="hidden"></canvas>
-<div id="msg"></div>
-<div id="cross" class="hidden"><span class="cdot"></span>
-<svg class="chand" viewBox="0 0 24 24" width="19" height="19"><path fill="#fff" d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"/></svg>
-</div>
+  <head>
+    <meta charset="utf-8" />
+    <title>NADZIRATEL · v1.0.0 (BUILD 121)</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="loader">
+      <div class="ldbox">
+        <div class="ldtitle">NADZI<span>RATEL</span></div>
+        <div class="ldbar"><div id="ldFill"></div></div>
+        <div class="ldrow"><span id="ldPct">0%</span><span id="ldLbl">инициализация…</span></div>
+        <div id="ldGo" class="ldgo hidden">Нажмите <b>ENTER</b> — войти в главное меню</div>
+      </div>
+    </div>
+    <canvas
+      id="fx"
+      style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50"
+    ></canvas>
+    <div id="wrap">
+      <canvas id="view" width="832" height="520"></canvas>
+      <div id="hud" class="hidden">
+        <div>Сложность: <b id="preLbl">—</b></div>
+        <div>
+          Время: <b id="timeLbl">0 с</b> · Пройдено: <b id="stepLbl">0 м</b> · FPS:
+          <b id="fpsLbl" class="fg">—</b>
+        </div>
+        <div style="margin-top:5px;font-size:11px;color:#8b95a8;margin-bottom:2px">
+          Стамина: <b id="stPct" style="color:#63e6be">100%</b>
+        </div>
+        <div style="width:150px;height:7px;background:#232b3a;border-radius:4px;overflow:hidden">
+          <div id="stamBar" style="height:100%;width:100%;background:#63e6be"></div>
+        </div>
+        <div id="flWrap" class="hidden" style="margin-top:5px">
+          <div style="font-size:11px;color:#8b95a8;margin-bottom:2px">
+            Фонарь: <b id="flPct" style="color:#ffd43b">100%</b>
+          </div>
+          <div style="width:150px;height:7px;background:#232b3a;border-radius:4px;overflow:hidden">
+            <div id="flBar" style="height:100%;width:100%;background:#ffd43b"></div>
+          </div>
+        </div>
+      </div>
+      <div id="invBar" class="hidden"></div>
+      <div
+        id="devPanel"
+        class="hidden"
+        style="position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(22,12,34,.88);border:1px solid #7048e8;border-radius:10px;padding:8px 12px;font-size:12px;color:#d0bfff;max-width:560px"
+      >
+        <b>DEV-РЕЖИМ · F3 — скрыть панель</b>
+        <div class="row" style="margin-top:6px">
+          <button id="dvNoclip">noclip</button><button id="dvInvis">invisible</button>
+          <button id="dvStam">∞ стамина</button><button id="dvMan">манекен</button
+          ><button id="dvTp">3-е лицо</button><button id="dvKey">→ ключ</button>
+          <button id="dvDoor">→ дверь</button><button id="dvSummon">призвать Надзирателя</button>
+          <button id="dvScream">скример</button><button id="botBtn">Автопилот</button>
+        </div>
+      </div>
+      <canvas id="minimap" width="150" height="150" class="hidden"></canvas>
+      <div id="msg"></div>
+      <div id="cross" class="hidden">
+        <span class="cdot"></span>
+        <svg class="chand" viewBox="0 0 24 24" width="19" height="19">
+          <path
+            fill="#fff"
+            d="M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"
+          />
+        </svg>
+      </div>
 
-<div id="menu" class="overlay hidden">
+      <div id="menu" class="overlay hidden">
+        <div id="msMain" class="mroot">
+          <button id="sndW" class="sndw hidden" type="button" title="Режим разработчика">
+            ♪ Лаборатория звуков
+          </button>
+          <div class="mtitle">NADZI<span>RATEL</span></div>
+          <div class="mver">v1.0.0 (BUILD 121) · WebGPU</div>
+          <div class="mcol">
+            <button class="mbig" id="miPlay" type="button"><i>▶</i>Играть</button>
+            <button class="mbig" id="miSet" type="button"><i>⚙</i>Настройки</button>
+            <button class="mbig" id="miMan" type="button"><i>?</i>Справочник</button>
+            <button class="mbig" id="miExit" type="button"><i>⏻</i>Выход</button>
+          </div>
+          <div class="mfoot" id="mfootHint"></div>
+        </div>
 
-<div id="msMain" class="mroot">
-<button id="sndW" class="sndw hidden" type="button" title="Режим разработчика">♪ Лаборатория звуков</button>
-<div class="mtitle">NADZI<span>RATEL</span></div>
-<div class="mver">v1.0.0 (BUILD 120) · WebGPU</div>
-<div class="mcol">
-<button class="mbig" id="miPlay" type="button"><i>▶</i>Играть</button>
-<button class="mbig" id="miSet" type="button"><i>⚙</i>Настройки</button>
-<button class="mbig" id="miMan" type="button"><i>?</i>Справочник</button>
-<button class="mbig" id="miExit" type="button"><i>⏻</i>Выход</button>
-</div>
-<div class="mfoot" id="mfootHint"></div>
-</div>
+        <div id="msPlay" class="mroot mpanel hidden">
+          <div class="phead">
+            <button class="back" id="plBack" type="button">← Назад</button>
+            <h2>Игра</h2>
+            <span class="sp"></span>
+          </div>
+          <div class="pbody">
+            <div class="srow">
+              <label>Пресет сложности</label>
+              <select id="plPreset">
+                <option value="custom">свой</option>
+                <option value="practice">тренировочный</option>
+                <option value="easy">лёгкий</option>
+                <option value="medium" selected>средний</option>
+                <option value="hard">сложный</option>
+                <option value="extreme">экстремальный</option>
+                <option value="impossible">невозможный</option>
+              </select>
+            </div>
+            <div class="srow dsc2"><span>меняет все пункты ниже</span></div>
 
-<div id="msPlay" class="mroot mpanel hidden">
-<div class="phead"><button class="back" id="plBack" type="button">← Назад</button><h2>Игра</h2><span class="sp"></span></div>
-<div class="pbody">
-<div class="srow"><label>Пресет сложности</label>
-<select id="plPreset">
-<option value="custom">свой</option>
-<option value="practice">тренировочный</option>
-<option value="easy">лёгкий</option>
-<option value="medium" selected>средний</option>
-<option value="hard">сложный</option>
-<option value="extreme">экстремальный</option>
-<option value="impossible">невозможный</option></select></div>
-<div class="srow dsc2"><span>меняет все пункты ниже</span></div>
+            <div class="acc2" id="accMaze">
+              <button class="ahead" type="button"><span class="chev">▸</span>Лабиринт</button>
+              <div class="abody">
+                <div class="srow">
+                  <label>Сид</label
+                  ><input
+                    type="text"
+                    id="plSeed"
+                    maxlength="128"
+                    placeholder="пусто = случайный"
+                    spellcheck="false"
+                    autocomplete="off"
+                  />
+                </div>
+                <div class="srow dsc2">
+                  <span
+                    >любой текст (слово, фраза, эмодзи) — через SHA3-512 в 512-битный ключ; пустое
+                    поле = случайный сид на 512 бит (128 hex-символов); одинаковый сид = одинаковый
+                    лабиринт</span
+                  >
+                </div>
+                <div class="srow">
+                  <label>Ширина лабиринта</label
+                  ><span class="ctl"
+                    ><input type="range" id="plW" min="1" max="100" step="1" value="24" /><span
+                      class="val"
+                      id="plWV"
+                      >24</span
+                    ></span
+                  >
+                </div>
+                <div class="srow">
+                  <label>Глубина лабиринта</label
+                  ><span class="ctl"
+                    ><input type="range" id="plH" min="1" max="100" step="1" value="24" /><span
+                      class="val"
+                      id="plHV"
+                      >24</span
+                    ></span
+                  >
+                </div>
+                <div class="srow dsc2">
+                  <span
+                    >проходимые клетки, где может ходить игрок (стены снаружи добавляет генератор);
+                    лабиринт может быть прямоугольным</span
+                  >
+                </div>
+                <div class="srow">
+                  <label>Плотность ламп</label
+                  ><span class="ctl"
+                    ><input
+                      type="range"
+                      id="plDens"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value="30"
+                    /><span class="val" id="plDensV">30.00%</span></span
+                  >
+                </div>
+                <div class="srow dsc2"><span>100% = лампа в каждой клетке</span></div>
+                <div class="srow">
+                  <label>Плотность тумбочек</label
+                  ><span class="ctl"
+                    ><input type="range" id="plCabD" min="0" max="100" step="0.01" value="5" /><span
+                      class="val"
+                      id="plCabDV"
+                      >5.00%</span
+                    ></span
+                  >
+                </div>
+                <div class="srow dsc2">
+                  <span>100% = тумбочка в каждой клетке лабиринта, 0% = их нет вообще</span>
+                </div>
+                <div class="srow">
+                  <label>Плотность лута</label
+                  ><span class="ctl"
+                    ><input
+                      type="range"
+                      id="plLoot"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value="50"
+                    /><span class="val" id="plLootV">50.00%</span></span
+                  >
+                </div>
+                <div class="srow dsc2">
+                  <span>100% = предмет в каждой тумбочке, 0% = все пустые (и ключа не будет)</span>
+                </div>
+                <div id="mazeInfo" class="info"></div>
+                <div id="mazeWarn" class="warn hidden"></div>
+              </div>
+            </div>
 
-<div class="acc2" id="accMaze">
-<button class="ahead" type="button"><span class="chev">▸</span>Лабиринт</button>
-<div class="abody">
-<div class="srow"><label>Сид</label><input type="text" id="plSeed" maxlength="128" placeholder="пусто = случайный" spellcheck="false" autocomplete="off"></div>
-<div class="srow dsc2"><span>любой текст (слово, фраза, эмодзи) — через SHA3-512 в 512-битный ключ; пустое поле = случайный сид на 512 бит (128 hex-символов); одинаковый сид = одинаковый лабиринт</span></div>
-<div class="srow"><label>Ширина лабиринта</label><span class="ctl"><input type="range" id="plW" min="1" max="100" step="1" value="24"><span class="val" id="plWV">24</span></span></div>
-<div class="srow"><label>Глубина лабиринта</label><span class="ctl"><input type="range" id="plH" min="1" max="100" step="1" value="24"><span class="val" id="plHV">24</span></span></div>
-<div class="srow dsc2"><span>проходимые клетки, где может ходить игрок (стены снаружи добавляет генератор); лабиринт может быть прямоугольным</span></div>
-<div class="srow"><label>Плотность ламп</label><span class="ctl"><input type="range" id="plDens" min="0" max="100" step="0.01" value="30"><span class="val" id="plDensV">30.00%</span></span></div>
-<div class="srow dsc2"><span>100% = лампа в каждой клетке</span></div>
-<div class="srow"><label>Плотность тумбочек</label><span class="ctl"><input type="range" id="plCabD" min="0" max="100" step="0.01" value="5"><span class="val" id="plCabDV">5.00%</span></span></div>
-<div class="srow dsc2"><span>100% = тумбочка в каждой клетке лабиринта, 0% = их нет вообще</span></div>
-<div class="srow"><label>Плотность лута</label><span class="ctl"><input type="range" id="plLoot" min="0" max="100" step="0.01" value="50"><span class="val" id="plLootV">50.00%</span></span></div>
-<div class="srow dsc2"><span>100% = предмет в каждой тумбочке, 0% = все пустые (и ключа не будет)</span></div>
-<div id="mazeInfo" class="info"></div>
-<div id="mazeWarn" class="warn hidden"></div>
-</div></div>
+            <div class="acc2" id="accMon">
+              <button class="ahead" type="button"><span class="chev">▸</span>Надзиратель</button>
+              <div class="abody">
+                <div class="srow">
+                  <label>Присутствие</label><input type="checkbox" id="plMon" checked />
+                </div>
+                <!-- без Монитора его собственные настройки скрыты (monSub/mapSub — см. updPlayVis) -->
+                <div id="monSub">
+                  <div class="srow">
+                    <label>Скорость бега</label
+                    ><span class="ctl"
+                      ><input
+                        type="range"
+                        id="plMonSp"
+                        min="8"
+                        max="100"
+                        step="1"
+                        value="15"
+                      /><span class="val" id="plMonSpV">15</span></span
+                    >
+                  </div>
+                  <div class="srow dsc2">
+                    <span>км/ч; ходит он всегда ≈8 км/ч. Игрок: шаг 7, бег 20</span>
+                  </div>
+                  <div class="srow">
+                    <label>Умный телепорт</label><input type="checkbox" id="plTp" />
+                  </div>
+                  <div class="srow dsc2">
+                    <span>режет дистанцию прыжками по темноте; свет фонарика его отгоняет</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-<div class="acc2" id="accMon">
-<button class="ahead" type="button"><span class="chev">▸</span>Надзиратель</button>
-<div class="abody">
-<div class="srow"><label>Присутствие</label><input type="checkbox" id="plMon" checked></div>
-<!-- without the Monitor his own settings are hidden (monSub/mapSub — see updPlayVis) -->
-<div id="monSub">
-<div class="srow"><label>Скорость бега</label><span class="ctl"><input type="range" id="plMonSp" min="8" max="100" step="1" value="15"><span class="val" id="plMonSpV">15</span></span></div>
-<div class="srow dsc2"><span>км/ч; ходит он всегда ≈8 км/ч. Игрок: шаг 7, бег 20</span></div>
-<div class="srow"><label>Умный телепорт</label><input type="checkbox" id="plTp"></div>
-<div class="srow dsc2"><span>режет дистанцию прыжками по темноте; свет фонарика его отгоняет</span></div>
-</div>
-</div></div>
+            <div class="acc2" id="accMap">
+              <button class="ahead" type="button"><span class="chev">▸</span>Мини-карта</button>
+              <div class="abody">
+                <div class="srow">
+                  <label>Показывать карту</label><input type="checkbox" id="plMapOn" checked />
+                </div>
+                <div id="mapSub">
+                  <div class="srow">
+                    <label>Показывать неисследованные участки</label
+                    ><input type="checkbox" id="plMapUnexp" checked />
+                  </div>
+                  <div class="srow">
+                    <label>Показывать монстра</label><input type="checkbox" id="plMapMon" />
+                  </div>
+                  <div class="srow">
+                    <label>Показывать лампы</label><input type="checkbox" id="plMapLamps" checked />
+                  </div>
+                  <div class="srow">
+                    <label>Показывать тумбочки</label
+                    ><input type="checkbox" id="plMapCabs" checked />
+                  </div>
+                  <div class="srow">
+                    <label>Показывать ключ</label><input type="checkbox" id="plMapKey" />
+                  </div>
+                  <div class="srow">
+                    <label>Показывать точку спавна</label
+                    ><input type="checkbox" id="plMapSpawn" checked />
+                  </div>
+                  <div class="srow">
+                    <label>Показывать выход</label><input type="checkbox" id="plMapExit" checked />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pfoot">
+            <button class="primary big" id="startBtn" type="button">Начать игру</button>
+          </div>
+        </div>
 
-<div class="acc2" id="accMap">
-<button class="ahead" type="button"><span class="chev">▸</span>Мини-карта</button>
-<div class="abody">
-<div class="srow"><label>Показывать карту</label><input type="checkbox" id="plMapOn" checked></div>
-<div id="mapSub">
-<div class="srow"><label>Показывать неисследованные участки</label><input type="checkbox" id="plMapUnexp" checked></div>
-<div class="srow"><label>Показывать монстра</label><input type="checkbox" id="plMapMon"></div>
-<div class="srow"><label>Показывать лампы</label><input type="checkbox" id="plMapLamps" checked></div>
-<div class="srow"><label>Показывать тумбочки</label><input type="checkbox" id="plMapCabs" checked></div>
-<div class="srow"><label>Показывать ключ</label><input type="checkbox" id="plMapKey"></div>
-<div class="srow"><label>Показывать точку спавна</label><input type="checkbox" id="plMapSpawn" checked></div>
-<div class="srow"><label>Показывать выход</label><input type="checkbox" id="plMapExit" checked></div>
-</div>
-</div></div>
-</div>
-<div class="pfoot"><button class="primary big" id="startBtn" type="button">Начать игру</button></div>
-</div>
+        <div id="msSet" class="mroot mpanel hidden">
+          <div class="phead">
+            <button class="back" id="stBack" type="button">← Назад</button>
+            <h2>Настройки</h2>
+            <span class="sp"></span>
+          </div>
+          <div class="pbody">
+            <div class="acc2" id="accCtl">
+              <button class="ahead" type="button">
+                <span class="chev">▸</span>Управление и бинды
+              </button>
+              <div class="abody">
+                <div class="srow">
+                  <label>Чувствительность мыши</label
+                  ><span class="ctl"
+                    ><input
+                      type="range"
+                      id="setSens"
+                      min="0.5"
+                      max="3"
+                      step="0.1"
+                      value="1.4"
+                    /><span class="val" id="setSensV">1.4</span></span
+                  >
+                </div>
+                <div id="bindRows"></div>
+                <div class="row" style="margin-top:10px;justify-content:flex-start">
+                  <button id="bindReset" type="button">Сбросить бинды</button>
+                </div>
+                <div class="srow dsc2">
+                  <span
+                    >клик по бинду — нажать новую клавишу (Esc — отмена). M — карта, стрелки ←/→ —
+                    поворот</span
+                  >
+                </div>
+              </div>
+            </div>
 
-<div id="msSet" class="mroot mpanel hidden">
-<div class="phead"><button class="back" id="stBack" type="button">← Назад</button><h2>Настройки</h2><span class="sp"></span></div>
-<div class="pbody">
-<div class="acc2" id="accCtl">
-<button class="ahead" type="button"><span class="chev">▸</span>Управление и бинды</button>
-<div class="abody">
-<div class="srow"><label>Чувствительность мыши</label><span class="ctl"><input type="range" id="setSens" min="0.5" max="3" step="0.1" value="1.4"><span class="val" id="setSensV">1.4</span></span></div>
-<div id="bindRows"></div>
-<div class="row" style="margin-top:10px;justify-content:flex-start"><button id="bindReset" type="button">Сбросить бинды</button></div>
-<div class="srow dsc2"><span>клик по бинду — нажать новую клавишу (Esc — отмена). M — карта, стрелки ←/→ — поворот</span></div>
-</div></div>
+            <div class="acc2" id="accGfx">
+              <button class="ahead" type="button"><span class="chev">▸</span>Графика</button>
+              <div class="abody">
+                <div class="srow">
+                  <label>Пресет качества</label
+                  ><select id="gfxPreset">
+                    <option value="low">низкая</option>
+                    <option value="medium">средняя</option>
+                    <option value="high">высокая</option>
+                    <option value="ultra" selected>эпическая</option>
+                    <option value="max">максимальная (не рекомендуется)</option>
+                    <option value="custom">своя</option>
+                  </select>
+                </div>
+                <div class="srow dsc2">
+                  <span
+                    >любая ручка ниже превращает пресет в «свой»; из главного меню применяется при
+                    старте игры, из паузы — при закрытии этой панели (одна пересборка рендера)</span
+                  >
+                </div>
+                <div id="gfxRows"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pfoot">
+            <button class="primary big" id="setDone" type="button">Готово</button>
+          </div>
+        </div>
+      </div>
 
-<div class="acc2" id="accGfx">
-<button class="ahead" type="button"><span class="chev">▸</span>Графика</button>
-<div class="abody">
-<div class="srow"><label>Пресет качества</label><select id="gfxPreset">
-<option value="low">низкая</option><option value="medium">средняя</option>
-<option value="high">высокая</option><option value="ultra" selected>эпическая</option>
-<option value="max">максимальная (не рекомендуется)</option>
-<option value="custom">своя</option></select></div>
-<div class="srow dsc2"><span>любая ручка ниже превращает пресет в «свой»; из главного меню применяется при старте игры, из паузы — при закрытии этой панели (одна пересборка рендера)</span></div>
-<div id="gfxRows"></div>
-</div></div>
-</div>
-<div class="pfoot"><button class="primary big" id="setDone" type="button">Готово</button></div>
-</div>
+      <div id="bye" class="overlay hidden" style="z-index:9;background:#04050a">
+        <div style="text-align:center">
+          <h1 style="margin:0 0 8px;font-size:26px;letter-spacing:3px;color:#63e6be">ВЫХОД</h1>
+          <p style="color:#a9b4c7;font-size:14px;margin:0 0 14px">
+            Спасибо за игру. Вкладку можно закрыть.
+          </p>
+          <div class="row"><button id="byeBack" type="button">Вернуться в меню</button></div>
+        </div>
+      </div>
 
-</div>
+      <div id="manual" class="overlay hidden">
+        <div class="box wide">
+          <h1 class="t">СПРАВОЧНИК</h1>
+          <p style="font-size:13px;color:#7d8798">
+            Всё, что нужно знать об игре — правила, Надзиратель, свет, сложность и графика.
+          </p>
+          <div class="manscroll">
+            <h2>Цель</h2>
+            <p>
+              Вы заперты в лабиринте. <b>Маленький ключ</b> лежит в одной из <b>тумбочек</b> вдали
+              от спавна — ищите их и открывайте ящики. Дойдите до <b>дальней железной двери</b> с
+              табло «ВЫХОД»: возьмите ключ <b>в руку</b> (клавиша слота, 1-4) и нажмите
+              <span class="kbd">E</span> — герой повернёт им <b>вентиль</b> и разблокирует дверь,
+              затем ещё <span class="kbd">E</span> — толкните полотно.
+              <b>Коснитесь зелёной сферы</b> в комнате за дверью — только тогда побег засчитывается.
+              Лабиринт каждый раз новый: форма, тумбочки, дверь и лампы генерируются из сида (сид —
+              любой текст, хоть эмодзи: через SHA3-512 он превращается в 512-битный ключ; пустое
+              поле в меню даёт случайный сид тоже на 512 бит — 128 hex-символов). Полный сид показан
+              в паузе и копируется оттуда одним кликом — вставив его в «Игра → Лабиринт → Сид», вы
+              переиграете ровно тот же лабиринт. Перед выходом возьмите со
+              <b>стола в сейф-комнате фонарик</b> — в темноте без него вы лёгкая добыча.
+            </p>
+            <h2>Управление</h2>
+            <ul>
+              <li>
+                <span class="kbd">Мышь</span> — обзор (клик по игре — захват курсора,
+                <span class="kbd">Esc</span> — отпустить).
+              </li>
+              <li>
+                Все клавиши <b>переназначаются</b>: Настройки → Управление и бинды (сохраняется
+                между сессиями).
+              </li>
+              <li>
+                <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span
+                ><span class="kbd">D</span> — движение. Обычный шаг <b>бесшумен</b> (7 км/ч ≈ 1.9
+                м/с).
+              </li>
+              <li>
+                <span class="kbd">Shift</span> — бег (20 км/ч ≈ 5.6 м/с): тратит <b>стамину</b> и
+                <b>шумит</b> — Надзиратель слышит его издалека. Полной стамины хватает примерно на
+                <b>15 с</b> бега; с нуля она восстанавливается за <b>30 с</b> (не зависит от
+                сложности).
+              </li>
+              <li>
+                <span class="kbd">C</span> — присесть/встать (<b>тумблер</b>): глубокий присед, шаг
+                2 км/ч, заметно тише и ниже — видно и от первого, и от третьего лица. В приседе
+                нельзя бежать. Идучи в приседе, персонаж переходит на крадущийся шаг.
+              </li>
+              <li>
+                <span class="kbd">E</span> — взаимодействие <b>только с тем, на что вы смотрите</b>:
+                в центре экрана белая точка, а когда она наведена на цель — превращается в
+                <b>ладонь</b>. Только тогда E возьмёт фонарик со стола, откроет/закроет ящик
+                тумбочки, подберёт батарейку или дверь. Без ладони E не делает ничего. Пока руки
+                заняты заменой батарейки — остальные действия недоступны. Если правая рука занята
+                предметом — тянется и действует <b>левая</b> (кроме подбора предметов и вентиля
+                выходной двери — там всегда правая). Пока идёт анимация действия, новые нажатия
+                E/F/R/C/1-4 игнорируются.
+              </li>
+              <li>
+                <span class="kbd">F</span> — включить/выключить фонарик (большой палец честно жмёт
+                кнопку). Срабатывает, только когда фонарик <b>в руке</b> (1-4) — слот он сам не
+                переключает.
+              </li>
+              <li>
+                <span class="kbd">R</span> — заменить батарейку фонарика (нужна запасная в
+                инвентаре, фонарик — <b>в руке</b>).
+              </li>
+              <li>
+                <b>1/2/3/4</b> — взять предмет слота в руку (инвентарь, 4 слота); пустой слот тоже
+                выбирается — рука остаётся пустой. Смена идёт с анимацией: рука со старым предметом
+                опускается и поднимается с новым.
+              </li>
+              <li>
+                <span class="kbd">G</span> — бросить предмет из руки на пол: он ляжет у ног и его
+                можно поднять снова на <span class="kbd">E</span>.
+              </li>
+              <li>
+                <span class="kbd">M</span> — миникарта, <span class="kbd">Esc</span> — пауза (игра и
+                звук замирают); в паузе виден <b>сид раунда</b> (клик по нему — скопировать целиком)
+                и кнопка <b>Настройки</b>.
+              </li>
+              <li>
+                Масштаб мира: <b>1 клетка ≈ 2.94 м</b> — все скорости честные: коридор ≈ 3 м
+                шириной, вы ровно <b>1.80 м</b> ростом, Надзиратель ≈ 2.9 м (сутулый, горбатый).
+                Поэтому его шаг (≈8 км/ч) быстрее вашего шага (7 км/ч), но медленнее вашего бега (20
+                км/ч).
+              </li>
+            </ul>
+            <h2>Надзиратель</h2>
+            <ul>
+              <li>
+                Он <b>не всевидящ</b>: смотрит только туда, куда идёт (конус зрения ~130°). Зайдите
+                со спины — и он вас не заметит.
+              </li>
+              <li>
+                Патрулирует ровным шагом <b>≈8 км/ч</b> (2.23 м/с) — его шаг выведен по той же
+                физике, что и ваш (равное число Фруда): он заметно выше, шаг длиннее (1.10 м), а
+                каденс реже (122 шага/мин против ваших 140): пешком от него не уйти, только бегом.
+                Дойдя до точки, <b>останавливается и осматривается</b>: поворачивает голову и всё
+                тело направо, налево, а иногда почти назад.
+              </li>
+              <li>
+                Услышав бег — <b>бежит</b> проверять (скорость бега зависит от сложности: 10 / 15 /
+                20 / 40 / 100 км/ч). На месте постоит, оглядываясь, затем уйдёт шагом.
+              </li>
+              <li>
+                В охоте: на лёгком и среднем вы его перебегаете (20 км/ч против 10–15), на сложном
+                вы равны (20 на 20 — спасает только дистанция и углы), на экстремальном (40 км/ч) и
+                невозможном (100 км/ч) — не убежите, прячьтесь.
+              </li>
+              <li>
+                Лампы рядом с ним <b>стробят и трещат</b> — это ваш радар: слышите треск — он
+                близко.
+              </li>
+              <li>
+                На сложном и выше он умеет <b>телепортироваться</b> — только в <b>темноту</b>,
+                только если это заметно короче пути и никогда у вас на глазах. Услышав ваш бег, он
+                <b>режет дистанцию прыжком к точке шума</b>: шумели в тёмном коридоре — он может
+                материализоваться <b>прямо там</b>. Защиты «не ближе N метров» нет: темнота — ваш
+                осознанный риск.
+              </li>
+              <li>
+                <b>Свет отпугивает тень:</b> пока фонарик включён, клетки в его конусе и ~5 м вокруг
+                вас тёмными не считаются — туда он прыгнуть не может (и вплотную к спине тоже — свет
+                проникает назад). Но за границей света, в 6-7 метрах позади, — уже вполне. Сел
+                фонарик в тёмном коридоре — бегите.
+              </li>
+              <li>Поймает — скример и конец забега.</li>
+            </ul>
+            <h2>Фонарик и темнота</h2>
+            <ul>
+              <li>
+                Фонарик лежит <b>на столе в сейф-комнате</b>: подойдите и нажмите
+                <span class="kbd">E</span>. Держится в <b>правой руке</b> — виден и от первого, и от
+                третьего лица.
+              </li>
+              <li>
+                <span class="kbd">F</span> — свет: большой палец нажимает кнопку на торце, раздаётся
+                щелчок. Луч идёт <b>строго куда вы смотрите</b>: горячее ядро ~15°, разлив ~37°,
+                дальность ~20 м.
+              </li>
+              <li>
+                Заряд тратится, пока свет включён (~150 с на батарейку). На <b>20%</b> и ниже
+                яркость <b>плавно падает</b> (лампа теплеет и тускнеет, как настоящая), на
+                <b>&lt;8%</b> — предсмертное мигание, на <b>0%</b> — фонарь гаснет.
+              </li>
+              <li>
+                <span class="kbd">R</span> — замена батарейки: герой наклоняет фонарь, вынимает
+                дохлую, достаёт из кармана новую, вставляет и заворачивает колпачок (~1.9 с). В это
+                время <b>руки заняты</b>: ни двери, ни предметы, ни свет. Нужна запасная батарейка в
+                инвентаре.
+              </li>
+              <li>
+                Батарейки лежат <b>в тумбочках с лутом</b> (по одной); в инвентаре стакаются до
+                <b>4</b>, а когда стопка полна — следующая батарейка занимает новый свободный слот.
+              </li>
+              <li>Убрали фонарик из руки (1-4) — он гаснет: из кармана не светит.</li>
+              <li>
+                <b>Темнота шепчет:</b> больше <b>10 секунд</b> в <b>настоящей</b> темноте (вдали от
+                ламп, где действительно худо видно; слегка затенённый край света не считается) —
+                герой начинает слышать шёпоты, дыхание за спиной, царапанье и собственное
+                сердцебиение. Вышли на свет — всё смолкает <b>сразу</b>. Это <b>не Надзиратель</b> —
+                это страх (и хороший стимул искать батарейки).
+              </li>
+            </ul>
+            <h2>Инвентарь</h2>
+            <ul>
+              <li>
+                <b>4 слота</b>, внизу экрана; выбранный подсвечен жёлтым. Предметов пока три:
+                <b>фонарик</b>, <b>батарейки</b> (стопка до 4 в одном слоте), <b>ключ</b>.
+              </li>
+              <li>
+                <b>1-4</b> — что сейчас в правой руке. Выбранный предмет виден в руке и от первого,
+                и от третьего лица. Подобранный предмет появляется в руке не мгновенно, а когда
+                тянущаяся рука доходит до него.
+              </li>
+            </ul>
+            <h2>Тумбочки</h2>
+            <ul>
+              <li>
+                Расставлены вдоль стен лабиринта. <span class="kbd">E</span> — плавно выдвинуть ящик
+                (со скрипом), ещё <span class="kbd">E</span> — забрать содержимое, ещё — задвинуть.
+              </li>
+              <li>
+                Внутри может быть <b>ключ</b> (одна дальняя тумбочка), <b>одна батарейка</b> (в
+                тумбочках с лутом) или <b>ничего</b> (пустые) — больше одного предмета ящик не
+                вмещает. Снаружи все одинаковые — поиск ключа это честная охота за тумбочками.
+              </li>
+              <li>
+                Число тумбочек задаёт <b>«Плотность тумбочек»</b> в меню «Играть → Лабиринт» (100% =
+                тумбочка в каждой клетке, 0% = их нет), содержимое — <b>«Плотность лута»</b> (100% =
+                предмет в каждой тумбочке, 0% = все пустые). Ключ занимает одну тумбочку с лутом;
+                при 0% лута ключа не будет — меню предупредит, но играть не запретит.
+              </li>
+              <li>
+                Что именно показывает миникарта (тумбочки, лампы, Надзирателя, ключ, спавн, выход,
+                неисследованные участки) — настраивается в меню «Играть → Мини-карта». Ключ по
+                умолчанию не подсвечивается никак: ни на карте, ни светом в мире.
+              </li>
+            </ul>
+            <h2>Сейф-комната</h2>
+            <ul>
+              <li>
+                Спавн — это сейф-комната с <b>деревянными дверями</b> и <b>столом</b>, на котором
+                лежит фонарик. Закройте двери на <span class="kbd">E</span> — и Надзиратель не
+                войдёт: комната укрывает вас.
+              </li>
+              <li>Дверь нельзя закрыть, если вы стоите в проёме (она распахнётся сама).</li>
+              <li>
+                <b>Надзиратель не запирается:</b> если он уже внутри сейф-комнаты или в проёме —
+                дверь не закроется (он её распирает), а комната больше не защищает. Запереть его и
+                пройти игру без него не выйдет.
+              </li>
+            </ul>
+            <h2>Свет и лампы</h2>
+            <ul>
+              <li>
+                Лампы горят там, где повезло: плотность задаётся настройкой (на «невозможном»
+                процедурных ламп нет вовсе — светят только спавн и комната выхода).
+              </li>
+              <li>
+                Свет <b>не проходит сквозь стены и закрытые двери</b>: за стеной — темнота, а
+                закрытая дверь со стороны коридора тёмная, даже если за ней горит лампа.
+              </li>
+              <li>Лампы иногда <b>гаснут</b> на доли секунды и стробят рядом с Надзирателем.</li>
+              <li>
+                Гул и треск идут <b>от самих ламп</b>: панорама по направлению, громкость по
+                дистанции, за стеной — глухо и тихо.
+              </li>
+              <li>
+                В темноте текстуры не подсвечиваются цветом: тьма здесь нейтральная, без
+                «разноцветной» краски.
+              </li>
+            </ul>
+            <h2>Сложность</h2>
+            <table class="man">
+              <tr>
+                <th>Пресет</th>
+                <th>Лабиринт</th>
+                <th>Бег Надзирателя</th>
+                <th>Лампы</th>
+                <th>Телепорт</th>
+                <th>Миникарта</th>
+                <th>Тумбочки (плотность/лут)</th>
+              </tr>
+              <tr>
+                <td>тренировочный</td>
+                <td>8×8</td>
+                <td>— (выключен)</td>
+                <td>50%</td>
+                <td>нет</td>
+                <td>все 8 пунктов</td>
+                <td>25% / 100%</td>
+              </tr>
+              <tr>
+                <td>лёгкий</td>
+                <td>16×16</td>
+                <td>10 км/ч</td>
+                <td>40%</td>
+                <td>нет</td>
+                <td>да (без ключа и выхода)</td>
+                <td>10% / 75%</td>
+              </tr>
+              <tr>
+                <td>средний</td>
+                <td>24×24</td>
+                <td>15 км/ч</td>
+                <td>30%</td>
+                <td>нет</td>
+                <td>только спавн</td>
+                <td>5% / 50%</td>
+              </tr>
+              <tr>
+                <td>сложный</td>
+                <td>32×32</td>
+                <td>20 км/ч</td>
+                <td>20%</td>
+                <td>да</td>
+                <td>нет</td>
+                <td>5% / 25%</td>
+              </tr>
+              <tr>
+                <td>экстремальный</td>
+                <td>32×32</td>
+                <td>40 км/ч</td>
+                <td>10%</td>
+                <td>да</td>
+                <td>нет</td>
+                <td>16% / 10%</td>
+              </tr>
+              <tr>
+                <td>невозможный</td>
+                <td>64×64</td>
+                <td>100 км/ч</td>
+                <td>0%</td>
+                <td>да</td>
+                <td>нет</td>
+                <td>8% / 4%</td>
+              </tr>
+            </table>
+            <p>
+              Свой пресет: ширина и глубина лабиринта 1–100 проходимых клеток каждая (можно
+              прямоугольную), скорость бега 8–100 км/ч, плотность ламп 0–100%, плотность тумбочек
+              0–100%, плотность лута 0–100%, телепорт и все 8 пунктов мини-карты — всё отдельно.
+              Меню сразу считает, поместятся ли на такой карте ключ и батарейки, и предупреждает,
+              если не все предметы сгенерируются.
+            </p>
+            <h2>Графика</h2>
+            <p>
+              Пресет графики меняет <b>и шейдеры, и текстуры</b>: разрешение рендера и атласа, число
+              сэмплов пост-эффектов и размер карты теней. <b>Детализация от пресета НЕ зависит</b>:
+              процедурные микродетали (трещины, грязь, потёки, копоть, «паутина») генерируются в
+              полном составе на любой ступени — с понижением графики они лишь рисуются в меньшем
+              разрешении. <b>Уровень освещённости от пресета НЕ зависит</b>: густота темноты, туман,
+              число источников света (56), ореолы ламп и экспозиция одинаковы на всех пресетах —
+              переключение графики не даёт преимущества в видимости (не чит). Со
+              <b>средней</b> добавляется «взрослый» набор: MSAA 4×, SSAO, <b>объёмный свет</b>,
+              GGX-PBR, HDR-bloom и резкость; соседние ступени различаются на глаз слабо, а по
+              производительности — заметно. По умолчанию — <b>эпическая</b>. Пресет можно поменять и
+              прямо в игре: <b>Настройки</b> в паузе (<span class="kbd">Esc</span>) открывают ту же
+              панель, что и в главном меню, — графика и бинды настраиваются посреди раунда; игра
+              никогда не переключает графику сама. В «Настройки → Графика» пресет разбирается на
+              <b>отдельные ручки</b> (оставлены только те, что действительно меняются между
+              пресетами): разрешение и анизотропия, атлас и рельеф, теневые карты, SSAO, объёмный
+              свет, отражения в лужах, bloom, резкость, зерно — можно собрать свой профиль — пресет
+              «своя». Из паузы новая графика применяется при закрытии панели («Готово» или
+              <span class="kbd">Esc</span>) — одна пересборка рендера, а не по разу на каждое
+              движение ползунка. Пресет <b>максимальная (не рекомендуется)</b> — экспериментальный:
+              всё выкручено на абсолютный максимум вплоть до рендера в 8K, для скриншотов и
+              бенчмарков.
+            </p>
+            <table class="man">
+              <tr>
+                <th>Пресет</th>
+                <th>Разрешение</th>
+                <th>Атлас</th>
+                <th>Особенности</th>
+              </tr>
+              <tr>
+                <td>низкая</td>
+                <td>640×400</td>
+                <td>256 px</td>
+                <td>
+                  слабые нормали и паралакс, тени ламп (карта 96 колонок, PCF-диск 16 тапов), SSAO 6
+                  и объёмный свет 6 сэмплов, отражения в лужах 35%, bloom (3 уровня), зерно
+                </td>
+              </tr>
+              <tr>
+                <td>средняя</td>
+                <td>960×600</td>
+                <td>384 px</td>
+                <td>
+                  MSAA 4×, HDR, тангентные нормали, GGX-PBR, карта теней 160 колонок, SSAO 8,
+                  объёмный свет 8, отражения 40%, bloom (3 уровня), резкость
+                </td>
+              </tr>
+              <tr>
+                <td>высокая</td>
+                <td>1280×800</td>
+                <td>512 px</td>
+                <td>
+                  анизотропия 8×, паралакс 12 шагов, полости, карта теней 256 колонок (PCF-диск 16
+                  тапов), SSAO 12, объёмный свет 12, отражения 50%, HDR-bloom ×4, анаморфные блики,
+                  резкость
+                </td>
+              </tr>
+              <tr>
+                <td>эпическая</td>
+                <td>1600×1000</td>
+                <td>1024 px</td>
+                <td>
+                  анизотропия 16×, паралакс 20 шагов, карта теней 384 колонки × 112 поясов (PCF-диск
+                  16 тапов, физическая полутень), SSAO 16, объёмный свет 16, отражения 65% с живой
+                  рябью и честным френелем воды, HDR-bloom ×5 + анаморфные лучи, MSAA 4×. Для
+                  мощного железа
+                </td>
+              </tr>
+              <tr>
+                <td>максимальная (не рекомендуется)</td>
+                <td>7680×4320 (8K)</td>
+                <td>2048 px</td>
+                <td>
+                  экспериментальный: абсолютный максимум — карта теней 512×128 на 32 лампы, PCF 16
+                  тапов, SSAO 24, объёмный свет 32, полноразмерные отражения, паралакс 32 шага,
+                  bloom ×6
+                </td>
+              </tr>
+            </table>
+            <p>
+              <b>Рендер:</b> игра всегда рисуется на GPU через WebGPU — дискретная видеокарта или
+              встроенная графика подхватывается браузером автоматически. Если WebGPU недоступен —
+              включите аппаратное ускорение в настройках браузера или обновите его.
+            </p>
+            <p>
+              <b>FPS</b> показывается в левом верхнем углу одним числом: сколько кадров рендер
+              <b>фактически</b> завершает за секунду — честная частота без поправки на герцовку
+              монитора и без «теоретических» оценок. Цвет — зелёный ≥ 50, жёлтый ≥ 30, красный &lt;
+              30 — повод снизить пресет графики (пауза → Настройки).
+            </p>
+            <h2>Советы</h2>
+            <ul>
+              <li>
+                Первым делом возьмите фонарик со стола и проверьте заряд: свет — ваша защита от
+                теневого телепорта.
+              </li>
+              <li>
+                Бег в темноте — двойной риск: он слышен издалека, а телепорт (на сложном и выше)
+                принесёт Надзирателя прямо к точке шума. Бегите только по освещённым участкам или с
+                включённым фонарём.
+              </li>
+              <li>
+                Ходите пешком: бег слышен издалека, а стамина кончается в самый неподходящий момент.
+              </li>
+              <li>
+                Собирайте батарейки заранее и меняйте их ДО того, как фонарь заморгал, а не после.
+              </li>
+              <li>
+                Запомнили шёпот в темноте? Это не монстр — но и задерживаться в темноте всё равно не
+                стоит.
+              </li>
+              <li>
+                Слушайте лампы: треск означает, что Надзиратель рядом, а строб — что он прямо за
+                углом.
+              </li>
+              <li>
+                Смотрите на миникарту и запоминайте тупики: ключ — в дальней тумбочке, отмечайте
+                проверенные.
+              </li>
+              <li>
+                Если он вас увидел — бегите и ломайте линию взгляда за углом: потеряв вас, он
+                побежит к последнему месту, где видел, и будет там осматриваться.
+              </li>
+              <li>Сейф-комната — передышка, не база: засидитесь, и он придёт ждать у двери.</li>
+            </ul>
+          </div>
+          <div class="row"><button class="primary" id="manClose">Закрыть</button></div>
+        </div>
+      </div>
 
-<div id="bye" class="overlay hidden" style="z-index:9;background:#04050a">
-<div style="text-align:center">
-<h1 style="margin:0 0 8px;font-size:26px;letter-spacing:3px;color:#63e6be">ВЫХОД</h1>
-<p style="color:#a9b4c7;font-size:14px;margin:0 0 14px">Спасибо за игру. Вкладку можно закрыть.</p>
-<div class="row"><button id="byeBack" type="button">Вернуться в меню</button></div>
-</div>
-</div>
+      <div id="pause" class="overlay hidden">
+        <div class="box">
+          <h1 class="t">ПАУЗА</h1>
+          <p>Игра и звук полностью остановлены.</p>
+          <div id="pauseSeed" class="pseed" title="ЛКМ — скопировать сид целиком">Сид: —</div>
+          <div id="pauseSeedHint" class="pseedhint">
+            ЛКМ по сиду — скопировать целиком (512 бит) и вставить в «Игра → Лабиринт → Сид»
+          </div>
+          <div class="row">
+            <button class="primary" id="resumeBtn">Продолжить</button>
+            <button id="pauseSetBtn">Настройки</button>
+            <button id="pauseManBtn">Справочник</button>
+            <button id="pauseMenuBtn">В меню</button>
+          </div>
+        </div>
+      </div>
 
-<div id="manual" class="overlay hidden"><div class="box wide">
-<h1 class="t">СПРАВОЧНИК</h1>
-<p style="font-size:13px;color:#7d8798">Всё, что нужно знать об игре — правила, Надзиратель, свет, сложность и графика.</p>
-<div class="manscroll">
-<h2>Цель</h2>
-<p>Вы заперты в лабиринте. <b>Маленький ключ</b> лежит в одной из <b>тумбочек</b> вдали от спавна —
-ищите их и открывайте ящики. Дойдите до <b>дальней железной двери</b> с табло
-«ВЫХОД»: возьмите ключ <b>в руку</b> (клавиша слота, 1-4) и нажмите <span class="kbd">E</span> —
-герой повернёт им <b>вентиль</b> и разблокирует дверь, затем ещё <span class="kbd">E</span> —
-толкните полотно. <b>Коснитесь зелёной сферы</b> в комнате за дверью — только тогда
-побег засчитывается. Лабиринт каждый раз новый: форма, тумбочки, дверь и лампы генерируются из сида
-(сид — любой текст, хоть эмодзи: через SHA3-512 он превращается в 512-битный ключ;
-пустое поле в меню даёт случайный сид тоже на 512 бит — 128 hex-символов). Полный сид показан
-в паузе и копируется оттуда одним кликом — вставив его в «Игра → Лабиринт → Сид»,
-вы переиграете ровно тот же лабиринт.
-Перед выходом возьмите со <b>стола в сейф-комнате фонарик</b> — в темноте без него вы лёгкая добыча.</p>
-<h2>Управление</h2>
-<ul>
-<li><span class="kbd">Мышь</span> — обзор (клик по игре — захват курсора, <span class="kbd">Esc</span> — отпустить).</li>
-<li>Все клавиши <b>переназначаются</b>: Настройки → Управление и бинды (сохраняется между сессиями).</li>
-<li><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span> — движение. Обычный шаг <b>бесшумен</b> (7 км/ч ≈ 1.9 м/с).</li>
-<li><span class="kbd">Shift</span> — бег (20 км/ч ≈ 5.6 м/с): тратит <b>стамину</b> и <b>шумит</b> — Надзиратель слышит его издалека.
-Полной стамины хватает примерно на <b>15 с</b> бега; с нуля она восстанавливается за <b>30 с</b> (не зависит от сложности).</li>
-<li><span class="kbd">C</span> — присесть/встать (<b>тумблер</b>): глубокий присед, шаг 2 км/ч, заметно тише и ниже —
-видно и от первого, и от третьего лица. В приседе нельзя бежать. Идучи в приседе, персонаж переходит на крадущийся шаг.</li>
-<li><span class="kbd">E</span> — взаимодействие <b>только с тем, на что вы смотрите</b>: в центре экрана
-белая точка, а когда она наведена на цель — превращается в <b>ладонь</b>. Только тогда E возьмёт фонарик
-со стола, откроет/закроет ящик тумбочки, подберёт батарейку или дверь. Без ладони E не делает ничего.
-Пока руки заняты заменой батарейки — остальные действия недоступны.
-Если правая рука занята предметом — тянется и действует <b>левая</b>
-(кроме подбора предметов и вентиля выходной двери — там всегда правая).
-Пока идёт анимация действия, новые нажатия E/F/R/C/1-4 игнорируются.</li>
-<li><span class="kbd">F</span> — включить/выключить фонарик (большой палец честно жмёт кнопку).
-Срабатывает, только когда фонарик <b>в руке</b> (1-4) — слот он сам не переключает.</li>
-<li><span class="kbd">R</span> — заменить батарейку фонарика (нужна запасная в инвентаре,
-фонарик — <b>в руке</b>).</li>
-<li><b>1/2/3/4</b> — взять предмет слота в руку (инвентарь, 4 слота); пустой слот
-тоже выбирается — рука остаётся пустой. Смена идёт с анимацией: рука со старым
-предметом опускается и поднимается с новым.</li>
-<li><span class="kbd">G</span> — бросить предмет из руки на пол: он ляжет у ног
-и его можно поднять снова на <span class="kbd">E</span>.</li>
-<li><span class="kbd">M</span> — миникарта, <span class="kbd">Esc</span> — пауза (игра и звук замирают);
-в паузе виден <b>сид раунда</b> (клик по нему — скопировать целиком) и кнопка <b>Настройки</b>.</li>
-<li>Масштаб мира: <b>1 клетка ≈ 2.94 м</b> — все скорости честные: коридор ≈ 3 м
-шириной, вы ровно <b>1.80 м</b> ростом, Надзиратель ≈ 2.9 м (сутулый, горбатый). Поэтому его шаг (≈8 км/ч)
-быстрее вашего шага (7 км/ч), но медленнее вашего бега (20 км/ч).</li>
-</ul>
-<h2>Надзиратель</h2>
-<ul>
-<li>Он <b>не всевидящ</b>: смотрит только туда, куда идёт (конус зрения ~130°). Зайдите со спины — и он вас не заметит.</li>
-<li>Патрулирует ровным шагом <b>≈8 км/ч</b> (2.23 м/с) — его шаг выведен по той же физике, что и ваш (равное число Фруда): он заметно выше, шаг длиннее (1.10 м), а каденс реже (122 шага/мин против ваших 140):
-пешком от него не уйти, только бегом. Дойдя до точки,
-<b>останавливается и осматривается</b>: поворачивает голову и всё тело направо, налево, а иногда почти назад.</li>
-<li>Услышав бег — <b>бежит</b> проверять (скорость бега зависит от сложности: 10 / 15 / 20 / 40 / 100 км/ч).
-На месте постоит, оглядываясь, затем уйдёт шагом.</li>
-<li>В охоте: на лёгком и среднем вы его перебегаете (20 км/ч против 10–15), на сложном вы равны
-(20 на 20 — спасает только дистанция и углы), на экстремальном (40 км/ч) и невозможном (100 км/ч) — не убежите, прячьтесь.</li>
-<li>Лампы рядом с ним <b>стробят и трещат</b> — это ваш радар: слышите треск — он близко.</li>
-<li>На сложном и выше он умеет <b>телепортироваться</b> — только в <b>темноту</b>, только если это
-заметно короче пути и никогда у вас на глазах. Услышав ваш бег, он <b>режет дистанцию прыжком
-к точке шума</b>: шумели в тёмном коридоре — он может материализоваться <b>прямо там</b>.
-Защиты «не ближе N метров» нет: темнота — ваш осознанный риск.</li>
-<li><b>Свет отпугивает тень:</b> пока фонарик включён, клетки в его конусе и ~5 м вокруг вас
-тёмными не считаются — туда он прыгнуть не может (и вплотную к спине тоже — свет проникает назад).
-Но за границей света, в 6-7 метрах позади, — уже вполне. Сел фонарик в тёмном коридоре — бегите.</li>
-<li>Поймает — скример и конец забега.</li>
-</ul>
-<h2>Фонарик и темнота</h2>
-<ul>
-<li>Фонарик лежит <b>на столе в сейф-комнате</b>: подойдите и нажмите <span class="kbd">E</span>.
-Держится в <b>правой руке</b> — виден и от первого, и от третьего лица.</li>
-<li><span class="kbd">F</span> — свет: большой палец нажимает кнопку на торце, раздаётся щелчок.
-Луч идёт <b>строго куда вы смотрите</b>: горячее ядро ~15°, разлив ~37°, дальность ~20 м.</li>
-<li>Заряд тратится, пока свет включён (~150 с на батарейку). На <b>20%</b> и ниже яркость
-<b>плавно падает</b> (лампа теплеет и тускнеет, как настоящая), на <b>&lt;8%</b> — предсмертное
-мигание, на <b>0%</b> — фонарь гаснет.</li>
-<li><span class="kbd">R</span> — замена батарейки: герой наклоняет фонарь, вынимает дохлую,
-достаёт из кармана новую, вставляет и заворачивает колпачок (~1.9 с). В это время <b>руки заняты</b>:
-ни двери, ни предметы, ни свет. Нужна запасная батарейка в инвентаре.</li>
-<li>Батарейки лежат <b>в тумбочках с лутом</b> (по одной); в инвентаре стакаются до <b>4</b>,
-а когда стопка полна — следующая батарейка занимает новый свободный слот.</li>
-<li>Убрали фонарик из руки (1-4) — он гаснет: из кармана не светит.</li>
-<li><b>Темнота шепчет:</b> больше <b>10 секунд</b> в <b>настоящей</b> темноте (вдали от ламп,
-где действительно худо видно; слегка затенённый край света не считается) — герой начинает слышать
-шёпоты, дыхание за спиной, царапанье и собственное сердцебиение. Вышли на свет — всё смолкает
-<b>сразу</b>. Это <b>не Надзиратель</b> — это страх (и хороший стимул искать батарейки).</li>
-</ul>
-<h2>Инвентарь</h2>
-<ul>
-<li><b>4 слота</b>, внизу экрана; выбранный подсвечен жёлтым. Предметов пока три:
-<b>фонарик</b>, <b>батарейки</b> (стопка до 4 в одном слоте), <b>ключ</b>.</li>
-<li><b>1-4</b> — что сейчас в правой руке. Выбранный предмет виден в руке
-и от первого, и от третьего лица. Подобранный предмет появляется в руке
-не мгновенно, а когда тянущаяся рука доходит до него.</li>
-</ul>
-<h2>Тумбочки</h2>
-<ul>
-<li>Расставлены вдоль стен лабиринта. <span class="kbd">E</span> — плавно выдвинуть ящик
-(со скрипом), ещё <span class="kbd">E</span> — забрать содержимое, ещё — задвинуть.</li>
-<li>Внутри может быть <b>ключ</b> (одна дальняя тумбочка), <b>одна батарейка</b>
-(в тумбочках с лутом) или <b>ничего</b> (пустые) — больше одного предмета ящик не вмещает. Снаружи все одинаковые — поиск ключа это честная охота за тумбочками.</li>
-<li>Число тумбочек задаёт <b>«Плотность тумбочек»</b> в меню «Играть → Лабиринт»
-(100% = тумбочка в каждой клетке, 0% = их нет), содержимое — <b>«Плотность лута»</b>
-(100% = предмет в каждой тумбочке, 0% = все пустые). Ключ занимает одну тумбочку
-с лутом; при 0% лута ключа не будет — меню предупредит, но играть не запретит.</li>
-<li>Что именно показывает миникарта (тумбочки, лампы, Надзирателя, ключ, спавн, выход,
-неисследованные участки) — настраивается в меню «Играть → Мини-карта». Ключ по
-умолчанию не подсвечивается никак: ни на карте, ни светом в мире.</li>
-</ul>
-<h2>Сейф-комната</h2>
-<ul>
-<li>Спавн — это сейф-комната с <b>деревянными дверями</b> и <b>столом</b>, на котором лежит фонарик.
-Закройте двери на <span class="kbd">E</span> — и Надзиратель не войдёт: комната укрывает вас.</li>
-<li>Дверь нельзя закрыть, если вы стоите в проёме (она распахнётся сама).</li>
-<li><b>Надзиратель не запирается:</b> если он уже внутри сейф-комнаты или в проёме — дверь не закроется
-(он её распирает), а комната больше не защищает. Запереть его и пройти игру без него не выйдет.</li>
-</ul>
-<h2>Свет и лампы</h2>
-<ul>
-<li>Лампы горят там, где повезло: плотность задаётся настройкой (на «невозможном» процедурных ламп нет вовсе —
-светят только спавн и комната выхода).</li>
-<li>Свет <b>не проходит сквозь стены и закрытые двери</b>: за стеной — темнота, а закрытая дверь со стороны
-коридора тёмная, даже если за ней горит лампа.</li>
-<li>Лампы иногда <b>гаснут</b> на доли секунды и стробят рядом с Надзирателем.</li>
-<li>Гул и треск идут <b>от самих ламп</b>: панорама по направлению, громкость по дистанции, за стеной — глухо и тихо.</li>
-<li>В темноте текстуры не подсвечиваются цветом: тьма здесь нейтральная, без «разноцветной» краски.</li>
-</ul>
-<h2>Сложность</h2>
-<table class="man">
-<tr><th>Пресет</th><th>Лабиринт</th><th>Бег Надзирателя</th><th>Лампы</th><th>Телепорт</th><th>Миникарта</th><th>Тумбочки (плотность/лут)</th></tr>
-<tr><td>тренировочный</td><td>8×8</td><td>— (выключен)</td><td>50%</td><td>нет</td><td>все 8 пунктов</td><td>25% / 100%</td></tr>
-<tr><td>лёгкий</td><td>16×16</td><td>10 км/ч</td><td>40%</td><td>нет</td><td>да (без ключа и выхода)</td><td>10% / 75%</td></tr>
-<tr><td>средний</td><td>24×24</td><td>15 км/ч</td><td>30%</td><td>нет</td><td>только спавн</td><td>5% / 50%</td></tr>
-<tr><td>сложный</td><td>32×32</td><td>20 км/ч</td><td>20%</td><td>да</td><td>нет</td><td>5% / 25%</td></tr>
-<tr><td>экстремальный</td><td>32×32</td><td>40 км/ч</td><td>10%</td><td>да</td><td>нет</td><td>16% / 10%</td></tr>
-<tr><td>невозможный</td><td>64×64</td><td>100 км/ч</td><td>0%</td><td>да</td><td>нет</td><td>8% / 4%</td></tr>
-</table>
-<p>Свой пресет: ширина и глубина лабиринта 1–100 проходимых клеток каждая (можно прямоугольную),
-скорость бега 8–100 км/ч, плотность ламп 0–100%, плотность тумбочек 0–100%,
-плотность лута 0–100%, телепорт и все 8 пунктов
-мини-карты — всё отдельно. Меню сразу считает, поместятся ли на такой карте
-ключ и батарейки, и предупреждает, если не все предметы сгенерируются.</p>
-<h2>Графика</h2>
-<p>Пресет графики меняет <b>и шейдеры, и текстуры</b>: разрешение рендера и атласа,
-число сэмплов пост-эффектов и размер карты теней. <b>Детализация от пресета НЕ зависит</b>:
-процедурные микродетали (трещины, грязь, потёки, копоть, «паутина») генерируются в полном
-составе на любой ступени — с понижением графики они лишь рисуются в меньшем разрешении.
-<b>Уровень освещённости от пресета НЕ зависит</b>: густота темноты, туман, число источников
-света (56), ореолы ламп и экспозиция одинаковы на всех пресетах — переключение графики не
-даёт преимущества в видимости (не чит). Со <b>средней</b> добавляется «взрослый» набор:
-MSAA 4×, SSAO, <b>объёмный свет</b>, GGX-PBR, HDR-bloom и резкость; соседние ступени
-различаются на глаз слабо, а по производительности — заметно. По умолчанию — <b>эпическая</b>.
-Пресет можно поменять и прямо в игре: <b>Настройки</b> в паузе (<span class="kbd">Esc</span>) открывают
-ту же панель, что и в главном меню, — графика и бинды настраиваются посреди раунда; игра никогда не
-переключает графику сама. В «Настройки → Графика» пресет разбирается на <b>отдельные ручки</b>
-(оставлены только те, что действительно меняются между пресетами): разрешение и анизотропия,
-атлас и рельеф, теневые карты, SSAO, объёмный свет, отражения в лужах, bloom, резкость, зерно —
-можно собрать свой профиль — пресет «своя». Из паузы новая графика применяется при закрытии
-панели («Готово» или <span class="kbd">Esc</span>) — одна пересборка рендера, а не по разу
-на каждое движение ползунка. Пресет <b>максимальная
-(не рекомендуется)</b> — экспериментальный: всё выкручено на абсолютный максимум вплоть до
-рендера в 8K, для скриншотов и бенчмарков.</p>
-<table class="man">
-<tr><th>Пресет</th><th>Разрешение</th><th>Атлас</th><th>Особенности</th></tr>
-<tr><td>низкая</td><td>640×400</td><td>256 px</td>
-<td>слабые нормали и паралакс, тени ламп (карта 96 колонок, PCF-диск 16 тапов), SSAO 6 и
-объёмный свет 6 сэмплов, отражения в лужах 35%, bloom (3 уровня), зерно</td></tr>
-<tr><td>средняя</td><td>960×600</td><td>384 px</td>
-<td>MSAA 4×, HDR, тангентные нормали, GGX-PBR, карта теней 160 колонок, SSAO 8,
-объёмный свет 8, отражения 40%, bloom (3 уровня), резкость</td></tr>
-<tr><td>высокая</td><td>1280×800</td><td>512 px</td>
-<td>анизотропия 8×, паралакс 12 шагов, полости, карта теней 256 колонок (PCF-диск 16 тапов),
-SSAO 12, объёмный свет 12, отражения 50%, HDR-bloom ×4, анаморфные блики, резкость</td></tr>
-<tr><td>эпическая</td><td>1600×1000</td><td>1024 px</td>
-<td>анизотропия 16×, паралакс 20 шагов, карта теней 384 колонки × 112 поясов (PCF-диск
-16 тапов, физическая полутень), SSAO 16, объёмный свет 16, отражения 65% с живой рябью и
-честным френелем воды, HDR-bloom ×5 + анаморфные лучи, MSAA 4×. Для мощного железа</td></tr>
-<tr><td>максимальная (не рекомендуется)</td><td>7680×4320 (8K)</td><td>2048 px</td>
-<td>экспериментальный: абсолютный максимум — карта теней 512×128 на 32 лампы, PCF 16 тапов,
-SSAO 24, объёмный свет 32, полноразмерные отражения, паралакс 32 шага, bloom ×6</td></tr>
-</table>
-<p><b>Рендер:</b> игра всегда рисуется на GPU через WebGPU — дискретная видеокарта
-или встроенная графика подхватывается браузером автоматически. Если WebGPU
-недоступен — включите аппаратное ускорение в настройках браузера или обновите его.</p>
-<p><b>FPS</b> показывается в левом верхнем углу одним числом: сколько кадров
-рендер <b>фактически</b> завершает за секунду — честная частота без поправки
-на герцовку монитора и без «теоретических» оценок. Цвет — зелёный ≥ 50,
-жёлтый ≥ 30, красный &lt; 30 — повод снизить пресет графики (пауза → Настройки).</p>
-<h2>Советы</h2>
-<ul>
-<li>Первым делом возьмите фонарик со стола и проверьте заряд: свет — ваша защита от теневого телепорта.</li>
-<li>Бег в темноте — двойной риск: он слышен издалека, а телепорт (на сложном и выше) принесёт
-Надзирателя прямо к точке шума. Бегите только по освещённым участкам или с включённым фонарём.</li>
-<li>Ходите пешком: бег слышен издалека, а стамина кончается в самый неподходящий момент.</li>
-<li>Собирайте батарейки заранее и меняйте их ДО того, как фонарь заморгал, а не после.</li>
-<li>Запомнили шёпот в темноте? Это не монстр — но и задерживаться в темноте всё равно не стоит.</li>
-<li>Слушайте лампы: треск означает, что Надзиратель рядом, а строб — что он прямо за углом.</li>
-<li>Смотрите на миникарту и запоминайте тупики: ключ — в дальней тумбочке, отмечайте проверенные.</li>
-<li>Если он вас увидел — бегите и ломайте линию взгляда за углом: потеряв вас, он побежит
-к последнему месту, где видел, и будет там осматриваться.</li>
-<li>Сейф-комната — передышка, не база: засидитесь, и он придёт ждать у двери.</li>
-</ul>
-</div>
-<div class="row"><button class="primary" id="manClose">Закрыть</button></div>
-</div></div>
+      <div id="sndlab" class="overlay hidden">
+        <div class="box" style="max-width:720px">
+          <h1 class="t">ЛАБОРАТОРИЯ ЗВУКОВ</h1>
+          <p>
+            Каждая звуковая процедура игры по отдельности, с боевой громкостью.<br />
+            Гул играет 2.5 с сэмплом, скример — полный боевой вопль.
+          </p>
+          <div class="row" id="sndBtns" style="max-width:660px"></div>
+          <div class="row"><button id="sndClose">Закрыть</button></div>
+        </div>
+      </div>
 
-<div id="pause" class="overlay hidden"><div class="box">
-<h1 class="t">ПАУЗА</h1><p>Игра и звук полностью остановлены.</p>
-<div id="pauseSeed" class="pseed" title="ЛКМ — скопировать сид целиком">Сид: —</div>
-<div id="pauseSeedHint" class="pseedhint">ЛКМ по сиду — скопировать целиком (512 бит) и вставить в «Игра → Лабиринт → Сид»</div>
-<div class="row"><button class="primary" id="resumeBtn">Продолжить</button>
-<button id="pauseSetBtn">Настройки</button>
-<button id="pauseManBtn">Справочник</button>
-<button id="pauseMenuBtn">В меню</button></div>
-</div></div>
+      <div id="end" class="overlay hidden">
+        <div class="box">
+          <h1 id="endTitle" class="t">—</h1>
+          <p id="endStats"></p>
+          <div class="row">
+            <button class="primary" id="againBtn">Тот же лабиринт</button>
+            <button id="nextBtn">Новый лабиринт</button>
+            <button id="endMenuBtn">В меню</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-<div id="sndlab" class="overlay hidden"><div class="box" style="max-width:720px">
-<h1 class="t">ЛАБОРАТОРИЯ ЗВУКОВ</h1>
-<p>Каждая звуковая процедура игры по отдельности, с боевой громкостью.<br>
-Гул играет 2.5 с сэмплом, скример — полный боевой вопль.</p>
-<div class="row" id="sndBtns" style="max-width:660px"></div>
-<div class="row"><button id="sndClose">Закрыть</button></div>
-</div></div>
+    <!--Обычные скрипты, без шага сборки; порядок загрузки важен: core = мир и
+   игровая логика (чистые вычисления), render = WebGPU-рендерер (файлы 01…35
+   продолжают область видимости друг друга), main = звук/ввод/интерфейс;
+   js/main/boot.js проводит инициализацию и запускает главный цикл.-->
+    <script src="js/core/version.js"></script>
+    <script src="js/core/rng.js"></script>
+    <script src="js/core/config.js"></script>
+    <script src="js/core/worldgen.js"></script>
+    <script src="js/core/run.js"></script>
+    <script src="js/core/light.js"></script>
+    <script src="js/core/movement.js"></script>
+    <script src="js/core/bot.js"></script>
+    <script src="js/core/monster.js"></script>
+    <script src="js/core/interaction.js"></script>
+    <script src="js/core/update.js"></script>
 
-<div id="end" class="overlay hidden"><div class="box">
-<h1 id="endTitle" class="t">—</h1>
-<p id="endStats"></p>
-<div class="row">
-<button class="primary" id="againBtn">Тот же лабиринт</button>
-<button id="nextBtn">Новый лабиринт</button>
-<button id="endMenuBtn">В меню</button>
-</div>
-</div></div>
-</div>
+    <script src="js/render/01_core.js"></script>
+    <script src="js/render/02_math.js"></script>
+    <script src="js/render/03_tex.js"></script>
+    <script src="js/render/04_atlas.js"></script>
+    <script src="js/render/05_world.js"></script>
+    <script src="js/render/06_mesh.js"></script>
+    <script src="js/render/07_parts.js"></script>
+    <script src="js/render/08_head.js"></script>
+    <script src="js/render/09_hair.js"></script>
+    <script src="js/render/10_rig.js"></script>
+    <script src="js/render/11_pose.js"></script>
+    <script src="js/render/12_skin.js"></script>
+    <script src="js/render/13_material.js"></script>
+    <script src="js/render/14_viewmodel.js"></script>
+    <script src="js/render/15_monitor.js"></script>
+    <script src="js/render/16_skirt.js"></script>
+    <script src="js/render/17_shadowcaps.js"></script>
+    <script src="js/render/18_door.js"></script>
+    <script src="js/render/19_puddle.js"></script>
+    <script src="js/render/20_collect.js"></script>
+    <script src="js/render/21_wgs_compute.js"></script>
+    <script src="js/render/22_wgs_sd.js"></script>
+    <script src="js/render/23_wgs_world.js"></script>
+    <script src="js/render/24_lamp_kernel.js"></script>
+    <script src="js/render/25_wgs_post.js"></script>
+    <script src="js/render/26_device.js"></script>
+    <script src="js/render/27_uniform.js"></script>
+    <script src="js/render/28_resources.js"></script>
+    <script src="js/render/29_pipelines.js"></script>
+    <script src="js/render/30_cleanup.js"></script>
+    <script src="js/render/31_init.js"></script>
+    <script src="js/render/32_resize.js"></script>
+    <script src="js/render/33_frameprep.js"></script>
+    <script src="js/render/34_frame.js"></script>
+    <script src="js/render/35_public.js"></script>
 
-<!-- Classic scripts, no build step; the load order matters: core = world and
-     gameplay (pure logic), gpu = the WebGPU renderer, main = sound/input/UI;
-     js/main/boot.js runs the init and starts the main loop. -->
-<script src="js/core/version.js"></script>
-<script src="js/core/rng.js"></script>
-<script src="js/core/config.js"></script>
-<script src="js/core/worldgen.js"></script>
-<script src="js/core/run.js"></script>
-<script src="js/core/light.js"></script>
-<script src="js/core/movement.js"></script>
-<script src="js/core/bot.js"></script>
-<script src="js/core/monster.js"></script>
-<script src="js/core/interaction.js"></script>
-<script src="js/core/update.js"></script>
-
-<script src="js/gpu.js"></script>
-
-<script src="js/main/state.js"></script>
-<script src="js/main/audio.js"></script>
-<script src="js/main/events.js"></script>
-<script src="js/main/music.js"></script>
-<script src="js/main/ui.js"></script>
-<script src="js/main/settings.js"></script>
-<script src="js/main/menu.js"></script>
-<script src="js/main/screamer.js"></script>
-<script src="js/main/input.js"></script>
-<script src="js/main/screens.js"></script>
-<script src="js/main/dev.js"></script>
-<script src="js/main/hud.js"></script>
-<script src="js/main/menubg.js"></script>
-<script src="js/main/loader.js"></script>
-<script src="js/main/boot.js"></script>
-</body>
+    <script src="js/main/state.js"></script>
+    <script src="js/main/audio.js"></script>
+    <script src="js/main/events.js"></script>
+    <script src="js/main/music.js"></script>
+    <script src="js/main/ui.js"></script>
+    <script src="js/main/settings.js"></script>
+    <script src="js/main/menu.js"></script>
+    <script src="js/main/screamer.js"></script>
+    <script src="js/main/input.js"></script>
+    <script src="js/main/screens.js"></script>
+    <script src="js/main/dev.js"></script>
+    <script src="js/main/hud.js"></script>
+    <script src="js/main/menubg.js"></script>
+    <script src="js/main/loader.js"></script>
+    <script src="js/main/boot.js"></script>
+  </body>
 </html>

@@ -1,151 +1,788 @@
-html,body{margin:0;height:100%;background:#08090d;color:#dbe2ee;
-font-family:ui-sans-serif,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;overflow:hidden}
-/* A game, not a website: text is never selectable anywhere (a stray LMB-drag
-   in a menu must not paint the UI blue). Exceptions: text inputs (the seed
-   field) and the explicitly opt-in .pseed.full below. */
-*{user-select:none;-webkit-user-select:none}
-input,textarea{user-select:text;-webkit-user-select:text}
-#wrap{position:relative;height:100%;display:flex;align-items:center;justify-content:center}
-/* Canvas always fills the screen; render resolution follows window aspect (gameResize) */
-canvas#view{position:fixed;inset:0;width:100vw;height:100vh}
-canvas.pixelated{image-rendering:pixelated!important}
-/* ==== MAIN MENU BACKGROUND: fullscreen 3D scene, light blur ==== */
-#view.menubg{filter:blur(2.5px) brightness(.93)}
-#menu.onmain{background:linear-gradient(90deg,rgba(5,6,10,.80) 0%,rgba(5,6,10,.55) 34%,rgba(5,6,10,.16) 68%,rgba(5,6,10,.10) 100%);backdrop-filter:none}
-#msMain{align-items:flex-start;padding-left:min(8vw,110px);box-sizing:border-box}
-#hud{position:absolute;top:14px;left:16px;font-size:13px;line-height:1.55;
-background:rgba(8,10,15,.74);border:1px solid #232b3a;border-radius:10px;padding:10px 14px;pointer-events:none}
-#hud b{color:#fff}
-#fpsLbl.fg{color:#63e6be} #fpsLbl.fm{color:#ffd43b} #fpsLbl.fb{color:#ff6b6b}
-/* Crosshair: white dot; turns into a palm over interactable targets */
-#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
-#cross .cdot{display:block;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 3px rgba(0,0,0,.9)}
-#cross .chand{display:none;filter:drop-shadow(0 0 2px rgba(0,0,0,.9))}
-#cross.on .cdot{display:none}
-#cross.on .chand{display:block}
-/* above the overlays (menu/pause/manual): two messages are fired while one is up */
-#msg{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);z-index:7;
-font-size:17px;font-weight:700;color:#ffd43b;text-shadow:0 2px 10px #000;
-background:rgba(8,10,15,.68);padding:8px 18px;border-radius:10px;border:1px solid #232b3a;
-opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
-#minimap{position:absolute;top:14px;right:16px;border-radius:10px;box-shadow:0 0 0 1px #232b3a;background:#0d1017}
-button{background:#1a2130;color:#dbe2ee;border:1px solid #2c3547;border-radius:9px;
-padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit}
-button:hover{background:#232b3a}
-button.primary{background:#2b4a3f;border-color:#3f6f5c;color:#c9f5e2}
-button.primary:hover{background:#35604f}
-.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-background:rgba(5,6,10,.82);backdrop-filter:blur(3px)}
-.box{background:#12161f;border:1px solid #2c3547;border-radius:16px;padding:22px 34px;text-align:center;
-max-width:640px;max-height:94vh;overflow:auto;overscroll-behavior:contain}
-.box h1{margin:0 0 6px;font-size:28px;letter-spacing:2px}
-.box h1.t{color:#63e6be} .box h1.w{color:#ff6b6b}
-.box p{margin:4px 0;color:#a9b4c7;font-size:14px}
-.row{margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-/* ==== PAUSE: THE SEED ====
-   The HUD no longer carries it (a 512-bit seed doesn't fit top-left). Here it is
-   clipped to the box width; LMB copies the FULL string to the clipboard. */
-.pseed{margin:14px auto 0;max-width:min(520px,84vw);padding:8px 11px;text-align:left;cursor:pointer;
-font-family:ui-monospace,monospace;font-size:12px;color:#8b95a8;background:#0d1017;
-border:1px solid #232b3a;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pseed:hover{border-color:#63e6be;color:#c9f5e2}
-.pseed.full{white-space:normal;overflow-wrap:anywhere;cursor:text;user-select:text}
-.pseedhint{margin:5px auto 0;max-width:min(520px,84vw);font-size:11px;color:#5c677d;line-height:1.5}
-.pseedhint.ok{color:#63e6be}
-/* a 128-char seed has no spaces to break on — don't let it overflow the box */
-#endStats{overflow-wrap:anywhere;display:inline-block;text-align:left;line-height:1.6}
-/* ==== MAIN MENU: screens, panels, accordions ==== */
-.mroot{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%}
-.mtitle{font-size:clamp(26px,4.6vw,44px);font-weight:800;letter-spacing:7px;color:#dbe2ee;text-transform:uppercase;text-shadow:0 0 34px rgba(99,230,190,.28)}
-.mtitle span{color:#63e6be}
-.mver{margin:6px 0 26px;font-size:12px;letter-spacing:3px;color:#5c677d}
-.mcol{display:flex;flex-direction:column;gap:9px;width:min(370px,86vw)}
-.mbig{display:flex;align-items:center;gap:14px;padding:14px 22px;font-size:16px;font-weight:600;letter-spacing:3px;text-transform:uppercase;text-align:left;color:#dbe2ee;cursor:pointer;background:linear-gradient(90deg,#171e2d,#12161f);border:1px solid #2c3547;border-radius:12px;transition:transform .14s,border-color .14s,box-shadow .14s,background .14s}
-.mbig i{font-style:normal;width:24px;text-align:center;color:#63e6be;font-size:15px}
-.mbig:hover{border-color:#63e6be;background:linear-gradient(90deg,#1b2436,#141a26);transform:translateX(7px);box-shadow:0 0 26px rgba(99,230,190,.16)}
-.mfoot{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px;color:#5c677d;padding:0 12px}
-.sndw{position:absolute;top:16px;right:18px;z-index:2;font-size:12px;padding:7px 13px;background:#160c22;border:1px solid #7048e8;color:#d0bfff;border-radius:9px;cursor:pointer}
-.sndw:hover{background:#221436}
-.mpanel{justify-content:flex-start;width:min(700px,95vw);height:auto;max-height:94vh;background:#12161f;border:1px solid #2c3547;border-radius:16px;overflow:hidden}
-.phead{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid #232b3a;background:#0f131c;flex:0 0 auto}
-.phead h2{margin:0;font-size:15px;letter-spacing:3px;color:#63e6be;text-transform:uppercase}
-.phead .sp{flex:1}
-button.back{background:none;border:1px solid #2c3547;color:#a9b4c7;font-size:12.5px;padding:6px 12px;border-radius:8px;cursor:pointer}
-button.back:hover{border-color:#63e6be;color:#dbe2ee}
-.pbody{padding:10px 18px 16px;overflow-y:auto;overscroll-behavior:contain;flex:1 1 auto;min-height:0}
-.pfoot{padding:12px 18px;border-top:1px solid #232b3a;display:flex;justify-content:center;background:#0f131c;flex:0 0 auto}
-button.big{font-size:15px;letter-spacing:2px;padding:11px 34px;text-transform:uppercase}
-.acc2{border:1px solid #2c3547;border-radius:10px;margin-top:10px;background:#0f131c;overflow:hidden}
-.ahead{width:100%;display:flex;align-items:center;gap:9px;padding:11px 14px;background:#161c29;border:0;border-radius:0;font-size:13.5px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#c6d0e0;cursor:pointer;font-family:inherit}
-.ahead:hover{background:#1c2434}
-.chev{color:#63e6be;font-size:11px;transition:transform .15s;display:inline-block}
-.acc2.open .chev{transform:rotate(90deg)}
-.abody{display:none;padding:6px 14px 13px}
-.acc2.open .abody{display:block}
-.srow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:9px 0}
-.srow>label{color:#a9b4c7;font-size:13.5px}
-.srow .ctl{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.srow.dsc2{margin:-5px 0 10px;justify-content:flex-start}
-.srow.dsc2 span{font-size:11.5px;color:#5c677d;line-height:1.5}
-.srow input[type=text]{width:min(250px,52vw)}
-.srow input[type=number]{width:86px}
-.ghead{margin:15px 0 3px;font-size:11.5px;letter-spacing:1.5px;text-transform:uppercase;color:#63e6be;border-bottom:1px solid #232b3a;padding-bottom:4px}
-.ghead:first-child{margin-top:6px}
-.info{margin-top:11px;font-size:12px;color:#8b95a8;line-height:1.55;border-top:1px dashed #232b3a;padding-top:8px}
-.warn{margin-top:8px;font-size:12.5px;color:#ffa94d;line-height:1.5;background:rgba(255,169,77,.07);border:1px solid rgba(255,169,77,.35);border-radius:8px;padding:7px 10px}
-.warn.bad{color:#ff6b6b;border-color:rgba(255,107,107,.4);background:rgba(255,107,107,.07)}
-.kbdBtn{min-width:92px;font-family:ui-monospace,monospace;font-size:12px;background:#0d1017;border:1px solid #2c3547;color:#dbe2ee;border-radius:7px;padding:6px 10px;cursor:pointer}
-.kbdBtn:hover{border-color:#63e6be}
-.kbdBtn.capt{border-color:#ffd43b;color:#ffd43b;animation:captp 1s infinite}
-@keyframes captp{50%{opacity:.5}}
-/* Shared scroller style for all panels (manual, menus, boxes) */
-.box,.manscroll,.pbody{scrollbar-width:thin;scrollbar-color:#2c3547 #0f131c}
-.box::-webkit-scrollbar,.manscroll::-webkit-scrollbar,.pbody::-webkit-scrollbar{width:10px}
-.box::-webkit-scrollbar-thumb,.manscroll::-webkit-scrollbar-thumb,.pbody::-webkit-scrollbar-thumb{background:#2c3547;border-radius:5px;border:2px solid #0f131c}
-.box::-webkit-scrollbar-track,.manscroll::-webkit-scrollbar-track,.pbody::-webkit-scrollbar-track{background:#0f131c;border-radius:5px}
-.box.wide{max-width:860px;width:min(94vw,860px)}
-#manual{z-index:6}
-.manscroll{max-height:min(62vh,560px);overflow:auto;text-align:left;padding-right:10px;
-border-top:1px solid #232b3a;border-bottom:1px solid #232b3a;margin-top:10px}
-.manscroll h2{font-size:15px;color:#63e6be;margin:16px 0 5px;letter-spacing:1px;text-transform:uppercase}
-.manscroll h2:first-child{margin-top:8px}
-.manscroll p,.manscroll li{font-size:13.5px;color:#a9b4c7;line-height:1.62;margin:4px 0}
-.manscroll ul{margin:4px 0 4px 18px;padding:0}
-.manscroll b{color:#dbe2ee}
-.manscroll .kbd{display:inline-block;background:#0d1017;border:1px solid #2c3547;border-radius:5px;
-padding:0 6px;font-size:12px;color:#dbe2ee;font-family:ui-monospace,monospace}
-table.man{border-collapse:collapse;font-size:13px;margin:6px 0}
-table.man td,table.man th{padding:3px 10px 3px 0;text-align:left;color:#a9b4c7;vertical-align:top}
-table.man th{color:#7d8798;font-weight:600;border-bottom:1px solid #232b3a}
-table.man td:first-child{color:#dbe2ee;white-space:nowrap}
-input[type=number],input[type=text],select{background:#0d1017;color:#dbe2ee;border:1px solid #2c3547;border-radius:7px;
-padding:5px 8px;font-size:13px;font-family:inherit;width:130px}
-select{width:152px}   /* the longest preset names («тренировочный», «экстремальный») else clip at the arrow */
-input[type=range]{vertical-align:middle;width:120px}
-input[type=checkbox]{width:16px;height:16px;vertical-align:middle}
-.val{color:#63e6be;font-size:12px;min-width:34px;display:inline-block}
-.keys{font-size:12.5px;color:#7d8798;margin-top:10px;line-height:1.65}
-.keys b{color:#a9b4c7}
-#invBar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:none}
-.islot{width:62px;height:62px;border:1px solid #2c3547;border-radius:11px;background:rgba(8,10,15,.74);
-display:flex;align-items:center;justify-content:center;position:relative;opacity:.45}
-.islot.sel{border-color:#ffd43b;opacity:1;box-shadow:0 0 14px rgba(255,212,59,.22)}
-.islot .cnt{position:absolute;right:6px;bottom:3px;font-size:12px;color:#ffd43b;font-weight:700;text-shadow:0 1px 3px #000}
-.islot .num{position:absolute;left:7px;top:4px;font-size:11px;font-weight:700;color:#5b6472}
-.islot.sel .num{color:#ffd43b}
-.islot svg{width:36px;height:36px}
-.hidden{display:none!important}
-/* ==== LOADING SCREEN: real init progress, Enter to start ==== */
-#loader{position:fixed;inset:0;z-index:200;background:#04050a;
-display:flex;align-items:center;justify-content:center}
-.ldbox{width:min(440px,86vw);text-align:center}
-.ldtitle{font-size:20px;font-weight:800;letter-spacing:5px;color:#dbe2ee;text-transform:uppercase;
-text-shadow:0 0 30px rgba(99,230,190,.25)}
-.ldtitle span{color:#63e6be}
-.ldbar{margin-top:24px;height:10px;background:#12161f;border:1px solid #2c3547;border-radius:6px;overflow:hidden}
-#ldFill{height:100%;width:0%;background:linear-gradient(90deg,#2b8f6f,#63e6be);transition:width .18s}
-.ldrow{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#8b95a8;min-height:16px}
-#ldPct{color:#63e6be;font-weight:700}
-.ldgo{margin-top:28px;font-size:14.5px;color:#a9b4c7;animation:ldp 1.6s infinite}
-.ldgo b{color:#ffd43b}
-@keyframes ldp{50%{opacity:.45}}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #08090d;
+  color: #dbe2ee;
+  font-family: ui-sans-serif, system-ui, 'Segoe UI', Helvetica, Arial, sans-serif;
+  overflow: hidden;
+}
+/* Это игра, а не сайт: текст нигде не выделяется (случайная протяжка ЛКМ в меню
+   не должна красить интерфейс в синий). Исключения: поля ввода (сид) и явно
+   разрешённый .pseed.full ниже. */
+* {
+  user-select: none;
+  -webkit-user-select: none;
+}
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+#wrap {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Канва всегда во весь экран; разрешение рендера следует пропорциям окна (gameResize) */
+canvas#view {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+canvas.pixelated {
+  image-rendering: pixelated !important;
+}
+/* ==== ФОН ГЛАВНОГО МЕНЮ: полноэкранная 3D-сцена, лёгкое размытие ==== */
+#view.menubg {
+  filter: blur(2.5px) brightness(0.93);
+}
+#menu.onmain {
+  background: linear-gradient(
+    90deg,
+    rgba(5, 6, 10, 0.8) 0%,
+    rgba(5, 6, 10, 0.55) 34%,
+    rgba(5, 6, 10, 0.16) 68%,
+    rgba(5, 6, 10, 0.1) 100%
+  );
+  backdrop-filter: none;
+}
+#msMain {
+  align-items: flex-start;
+  padding-left: min(8vw, 110px);
+  box-sizing: border-box;
+}
+#hud {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  background: rgba(8, 10, 15, 0.74);
+  border: 1px solid #232b3a;
+  border-radius: 10px;
+  padding: 10px 14px;
+  pointer-events: none;
+}
+#hud b {
+  color: #fff;
+}
+#fpsLbl.fg {
+  color: #63e6be;
+}
+#fpsLbl.fm {
+  color: #ffd43b;
+}
+#fpsLbl.fb {
+  color: #ff6b6b;
+}
+/* Прицел: белая точка; над интерактивной целью превращается в ладонь */
+#cross {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#cross .cdot {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+}
+#cross .chand {
+  display: none;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+#cross.on .cdot {
+  display: none;
+}
+#cross.on .chand {
+  display: block;
+}
+/* поверх оверлеев (меню/пауза/мануал): два сообщения могут прийти, пока одно висит */
+#msg {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  z-index: 7;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffd43b;
+  text-shadow: 0 2px 10px #000;
+  background: rgba(8, 10, 15, 0.68);
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid #232b3a;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#minimap {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #232b3a;
+  background: #0d1017;
+}
+button {
+  background: #1a2130;
+  color: #dbe2ee;
+  border: 1px solid #2c3547;
+  border-radius: 9px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+button:hover {
+  background: #232b3a;
+}
+button.primary {
+  background: #2b4a3f;
+  border-color: #3f6f5c;
+  color: #c9f5e2;
+}
+button.primary:hover {
+  background: #35604f;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 6, 10, 0.82);
+  backdrop-filter: blur(3px);
+}
+.box {
+  background: #12161f;
+  border: 1px solid #2c3547;
+  border-radius: 16px;
+  padding: 22px 34px;
+  text-align: center;
+  max-width: 640px;
+  max-height: 94vh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.box h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  letter-spacing: 2px;
+}
+.box h1.t {
+  color: #63e6be;
+}
+.box h1.w {
+  color: #ff6b6b;
+}
+.box p {
+  margin: 4px 0;
+  color: #a9b4c7;
+  font-size: 14px;
+}
+.row {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+/* ==== ПАУЗА: СИД ====
+   В HUD его больше нет (512-битный сид не влезает в левый верхний угол). Здесь он
+   обрезается по ширине окна; ЛКМ копирует ВСЮ строку в буфер обмена. */
+.pseed {
+  margin: 14px auto 0;
+  max-width: min(520px, 84vw);
+  padding: 8px 11px;
+  text-align: left;
+  cursor: pointer;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: #8b95a8;
+  background: #0d1017;
+  border: 1px solid #232b3a;
+  border-radius: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pseed:hover {
+  border-color: #63e6be;
+  color: #c9f5e2;
+}
+.pseed.full {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: text;
+  user-select: text;
+}
+.pseedhint {
+  margin: 5px auto 0;
+  max-width: min(520px, 84vw);
+  font-size: 11px;
+  color: #5c677d;
+  line-height: 1.5;
+}
+.pseedhint.ok {
+  color: #63e6be;
+}
+/* в 128-символьном сиде нет пробелов для переноса — не даём ему вылезти из окна */
+#endStats {
+  overflow-wrap: anywhere;
+  display: inline-block;
+  text-align: left;
+  line-height: 1.6;
+}
+/* ==== ГЛАВНОЕ МЕНЮ: экраны, панели, аккордеоны ==== */
+.mroot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+.mtitle {
+  font-size: clamp(26px, 4.6vw, 44px);
+  font-weight: 800;
+  letter-spacing: 7px;
+  color: #dbe2ee;
+  text-transform: uppercase;
+  text-shadow: 0 0 34px rgba(99, 230, 190, 0.28);
+}
+.mtitle span {
+  color: #63e6be;
+}
+.mver {
+  margin: 6px 0 26px;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #5c677d;
+}
+.mcol {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: min(370px, 86vw);
+}
+.mbig {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-align: left;
+  color: #dbe2ee;
+  cursor: pointer;
+  background: linear-gradient(90deg, #171e2d, #12161f);
+  border: 1px solid #2c3547;
+  border-radius: 12px;
+  transition:
+    transform 0.14s,
+    border-color 0.14s,
+    box-shadow 0.14s,
+    background 0.14s;
+}
+.mbig i {
+  font-style: normal;
+  width: 24px;
+  text-align: center;
+  color: #63e6be;
+  font-size: 15px;
+}
+.mbig:hover {
+  border-color: #63e6be;
+  background: linear-gradient(90deg, #1b2436, #141a26);
+  transform: translateX(7px);
+  box-shadow: 0 0 26px rgba(99, 230, 190, 0.16);
+}
+.mfoot {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  color: #5c677d;
+  padding: 0 12px;
+}
+.sndw {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  z-index: 2;
+  font-size: 12px;
+  padding: 7px 13px;
+  background: #160c22;
+  border: 1px solid #7048e8;
+  color: #d0bfff;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.sndw:hover {
+  background: #221436;
+}
+.mpanel {
+  justify-content: flex-start;
+  width: min(700px, 95vw);
+  height: auto;
+  max-height: 94vh;
+  background: #12161f;
+  border: 1px solid #2c3547;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.phead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid #232b3a;
+  background: #0f131c;
+  flex: 0 0 auto;
+}
+.phead h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 3px;
+  color: #63e6be;
+  text-transform: uppercase;
+}
+.phead .sp {
+  flex: 1;
+}
+button.back {
+  background: none;
+  border: 1px solid #2c3547;
+  color: #a9b4c7;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button.back:hover {
+  border-color: #63e6be;
+  color: #dbe2ee;
+}
+.pbody {
+  padding: 10px 18px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pfoot {
+  padding: 12px 18px;
+  border-top: 1px solid #232b3a;
+  display: flex;
+  justify-content: center;
+  background: #0f131c;
+  flex: 0 0 auto;
+}
+button.big {
+  font-size: 15px;
+  letter-spacing: 2px;
+  padding: 11px 34px;
+  text-transform: uppercase;
+}
+.acc2 {
+  border: 1px solid #2c3547;
+  border-radius: 10px;
+  margin-top: 10px;
+  background: #0f131c;
+  overflow: hidden;
+}
+.ahead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  background: #161c29;
+  border: 0;
+  border-radius: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #c6d0e0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ahead:hover {
+  background: #1c2434;
+}
+.chev {
+  color: #63e6be;
+  font-size: 11px;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+.acc2.open .chev {
+  transform: rotate(90deg);
+}
+.abody {
+  display: none;
+  padding: 6px 14px 13px;
+}
+.acc2.open .abody {
+  display: block;
+}
+.srow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 9px 0;
+}
+.srow > label {
+  color: #a9b4c7;
+  font-size: 13.5px;
+}
+.srow .ctl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.srow.dsc2 {
+  margin: -5px 0 10px;
+  justify-content: flex-start;
+}
+.srow.dsc2 span {
+  font-size: 11.5px;
+  color: #5c677d;
+  line-height: 1.5;
+}
+.srow input[type='text'] {
+  width: min(250px, 52vw);
+}
+.srow input[type='number'] {
+  width: 86px;
+}
+.ghead {
+  margin: 15px 0 3px;
+  font-size: 11.5px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #63e6be;
+  border-bottom: 1px solid #232b3a;
+  padding-bottom: 4px;
+}
+.ghead:first-child {
+  margin-top: 6px;
+}
+.info {
+  margin-top: 11px;
+  font-size: 12px;
+  color: #8b95a8;
+  line-height: 1.55;
+  border-top: 1px dashed #232b3a;
+  padding-top: 8px;
+}
+.warn {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: #ffa94d;
+  line-height: 1.5;
+  background: rgba(255, 169, 77, 0.07);
+  border: 1px solid rgba(255, 169, 77, 0.35);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+.warn.bad {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.4);
+  background: rgba(255, 107, 107, 0.07);
+}
+.kbdBtn {
+  min-width: 92px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  background: #0d1017;
+  border: 1px solid #2c3547;
+  color: #dbe2ee;
+  border-radius: 7px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.kbdBtn:hover {
+  border-color: #63e6be;
+}
+.kbdBtn.capt {
+  border-color: #ffd43b;
+  color: #ffd43b;
+  animation: captp 1s infinite;
+}
+@keyframes captp {
+  50% {
+    opacity: 0.5;
+  }
+}
+/* Общий стиль полос прокрутки для всех панелей (мануал, меню, окна) */
+.box,
+.manscroll,
+.pbody {
+  scrollbar-width: thin;
+  scrollbar-color: #2c3547 #0f131c;
+}
+.box::-webkit-scrollbar,
+.manscroll::-webkit-scrollbar,
+.pbody::-webkit-scrollbar {
+  width: 10px;
+}
+.box::-webkit-scrollbar-thumb,
+.manscroll::-webkit-scrollbar-thumb,
+.pbody::-webkit-scrollbar-thumb {
+  background: #2c3547;
+  border-radius: 5px;
+  border: 2px solid #0f131c;
+}
+.box::-webkit-scrollbar-track,
+.manscroll::-webkit-scrollbar-track,
+.pbody::-webkit-scrollbar-track {
+  background: #0f131c;
+  border-radius: 5px;
+}
+.box.wide {
+  max-width: 860px;
+  width: min(94vw, 860px);
+}
+#manual {
+  z-index: 6;
+}
+.manscroll {
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  text-align: left;
+  padding-right: 10px;
+  border-top: 1px solid #232b3a;
+  border-bottom: 1px solid #232b3a;
+  margin-top: 10px;
+}
+.manscroll h2 {
+  font-size: 15px;
+  color: #63e6be;
+  margin: 16px 0 5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.manscroll h2:first-child {
+  margin-top: 8px;
+}
+.manscroll p,
+.manscroll li {
+  font-size: 13.5px;
+  color: #a9b4c7;
+  line-height: 1.62;
+  margin: 4px 0;
+}
+.manscroll ul {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+.manscroll b {
+  color: #dbe2ee;
+}
+.manscroll .kbd {
+  display: inline-block;
+  background: #0d1017;
+  border: 1px solid #2c3547;
+  border-radius: 5px;
+  padding: 0 6px;
+  font-size: 12px;
+  color: #dbe2ee;
+  font-family: ui-monospace, monospace;
+}
+table.man {
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 6px 0;
+}
+table.man td,
+table.man th {
+  padding: 3px 10px 3px 0;
+  text-align: left;
+  color: #a9b4c7;
+  vertical-align: top;
+}
+table.man th {
+  color: #7d8798;
+  font-weight: 600;
+  border-bottom: 1px solid #232b3a;
+}
+table.man td:first-child {
+  color: #dbe2ee;
+  white-space: nowrap;
+}
+input[type='number'],
+input[type='text'],
+select {
+  background: #0d1017;
+  color: #dbe2ee;
+  border: 1px solid #2c3547;
+  border-radius: 7px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 130px;
+}
+select {
+  width: 152px;
+} /* иначе самые длинные названия пресетов («тренировочный», «экстремальный») обрезаются у стрелки */
+input[type='range'] {
+  vertical-align: middle;
+  width: 120px;
+}
+input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+.val {
+  color: #63e6be;
+  font-size: 12px;
+  min-width: 34px;
+  display: inline-block;
+}
+.keys {
+  font-size: 12.5px;
+  color: #7d8798;
+  margin-top: 10px;
+  line-height: 1.65;
+}
+.keys b {
+  color: #a9b4c7;
+}
+#invBar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+.islot {
+  width: 62px;
+  height: 62px;
+  border: 1px solid #2c3547;
+  border-radius: 11px;
+  background: rgba(8, 10, 15, 0.74);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  opacity: 0.45;
+}
+.islot.sel {
+  border-color: #ffd43b;
+  opacity: 1;
+  box-shadow: 0 0 14px rgba(255, 212, 59, 0.22);
+}
+.islot .cnt {
+  position: absolute;
+  right: 6px;
+  bottom: 3px;
+  font-size: 12px;
+  color: #ffd43b;
+  font-weight: 700;
+  text-shadow: 0 1px 3px #000;
+}
+.islot .num {
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5b6472;
+}
+.islot.sel .num {
+  color: #ffd43b;
+}
+.islot svg {
+  width: 36px;
+  height: 36px;
+}
+.hidden {
+  display: none !important;
+}
+/* ==== ЭКРАН ЗАГРУЗКИ: настоящий прогресс инициализации, Enter — начать ==== */
+#loader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #04050a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ldbox {
+  width: min(440px, 86vw);
+  text-align: center;
+}
+.ldtitle {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 5px;
+  color: #dbe2ee;
+  text-transform: uppercase;
+  text-shadow: 0 0 30px rgba(99, 230, 190, 0.25);
+}
+.ldtitle span {
+  color: #63e6be;
+}
+.ldbar {
+  margin-top: 24px;
+  height: 10px;
+  background: #12161f;
+  border: 1px solid #2c3547;
+  border-radius: 6px;
+  overflow: hidden;
+}
+#ldFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2b8f6f, #63e6be);
+  transition: width 0.18s;
+}
+.ldrow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8b95a8;
+  min-height: 16px;
+}
+#ldPct {
+  color: #63e6be;
+  font-weight: 700;
+}
+.ldgo {
+  margin-top: 28px;
+  font-size: 14.5px;
+  color: #a9b4c7;
+  animation: ldp 1.6s infinite;
+}
+.ldgo b {
+  color: #ffd43b;
+}
+@keyframes ldp {
+  50% {
+    opacity: 0.45;
+  }
+}

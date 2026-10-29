@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Headless-тесты
+        run: node tests/run.js
+      - name: Отпечаток поведения против эталона
+        run: |
+          node tests/run.js --fingerprint > /tmp/fingerprint.json
+          node tests/check_fingerprint.js /tmp/fingerprint.json
+
+  release:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Сборка и самопроверка
+        run: python3 builder/run.py --ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-html
+          path: builder/NADZIRATEL v*(release).html

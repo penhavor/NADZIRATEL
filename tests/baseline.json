@@ -1,0 +1,24 @@
+{
+ "mode": "source",
+ "source": "source",
+ "sections": {
+  "dom": "9742598069663f81",
+  "boot": "9268f4f02d14e35f",
+  "api": "c604e9468fd8512a",
+  "rng": "9064ef825a5ec521",
+  "config": "0f127af01a99fc91",
+  "worldgen": "9903c9f857a2b9c1",
+  "atlas": "3da615b054fd1706",
+  "geometry": "4092e4d87e712531",
+  "shaders": "f6e2693e773496b7",
+  "character": "3dabd63b63a0e42a",
+  "monitor": "40b7ab8848f20271",
+  "sim": "fb2735a7edf28c3a",
+  "audio": "cb79f6a691c1b366",
+  "ui": "7e8aede29a8c2035",
+  "gpu": "4f4a2c23564406d6"
+ },
+ "total": "6d1ef90676b506e6",
+ "notes": {},
+ "ops": 1406564
+}
